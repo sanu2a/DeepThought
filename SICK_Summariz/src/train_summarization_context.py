@@ -313,6 +313,6 @@ with open(args.test_output_file_name,"w") as f:
     f.write(metrics)
     for i in decoded_preds:
         f.write(i.replace("\n","")+"\n")
-"""
+'''
 # END WANDB log
 wandb.finish()
