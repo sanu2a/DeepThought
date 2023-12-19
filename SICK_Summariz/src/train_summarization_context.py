@@ -127,7 +127,7 @@ vocab_size_list={
     "google/t5-v1_1-large":32128
 }
 dataset_list = [
-    "samsum","dialogsum"
+    "samsum","dialogsum", "samsum low"
 ]
 
 
@@ -165,6 +165,13 @@ elif args.dataset_name=='dialogsum':
     train_dataset = total_dataset.getTrainData()
     eval_dataset = total_dataset.getEvalData()
     test_dataset = total_dataset.getTestData()
+elif args.dataset_name=='samsum_low':
+    total_dataset = SamsumDataset_low_total(args.encoder_max_len,args.decoder_max_len,tokenizer,extra_context=False,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation,roberta=args.use_roberta)
+    train_dataset = total_dataset.getTrainData()
+    eval_dataset = total_dataset.getEvalData()
+    test_dataset = total_dataset.getTestData()
+
+
 print('######################################################################')
 print('Training Dataset Size is : ')
 print(len(train_dataset))
@@ -278,7 +285,7 @@ finetune_trainer.train()
 # Save final weights
 finetune_trainer.save_model(args.best_finetune_weight_path)
 
-"""
+
 # Run Evaluation on Test Data
 results = finetune_trainer.predict(
     test_dataset=test_dataset,
@@ -290,7 +297,7 @@ print('######################################################################')
 print("Final Rouge Results are : ",metrics)
 print('######################################################################')
 
-
+'''
 # Write evaluation predictions on txt file
 decoded_preds = tokenizer.batch_decode(predictions, skip_special_tokens=True)
     # Replace -100 in the labels as we can't decode them.
