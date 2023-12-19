@@ -165,7 +165,7 @@ elif args.dataset_name=='dialogsum':
     eval_dataset = total_dataset.getEvalData()
     test_dataset = total_dataset.getTestData()
 elif args.dataset_name=='samsum_low':
-    total_dataset = SamsumDataset_low_total(args.encoder_max_len,args.decoder_max_len,tokenizer,extra_context=False,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation,roberta=args.use_roberta)
+    total_dataset = SamsumDataset_low(args.encoder_max_len,args.decoder_max_len,tokenizer,extra_context=False,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation,roberta=args.use_roberta)
     train_dataset = total_dataset.getTrainData()
     eval_dataset = total_dataset.getEvalData()
     test_dataset = total_dataset.getTestData()
