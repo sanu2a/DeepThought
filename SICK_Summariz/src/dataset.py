@@ -8,6 +8,7 @@ import os
 import spacy
 import re
 import random
+import argparse
 
 
 
@@ -755,11 +756,15 @@ class TweetsummDataset_total:
 
 
 class SamsumDataset_low(Dataset):
-    def __init__(self, encoder_max_len, decoder_max_len, split_type, tokenizer, extra_context=False, extra_supervision=False, paracomet=False,relation = "xReason", supervision_relation="isAfter", roberta=False):
+    def __init__(self, encoder_max_len, decoder_max_len, split_type, tokenizer, subset_size,
+                extra_context=False, extra_supervision=False, paracomet=False,
+                relation = "xReason", supervision_relation="isAfter", roberta=False):
+
         self.encoder_max_len = encoder_max_len
         self.decoder_max_len = decoder_max_len
         self.split_type = split_type
         self.tokenizer = tokenizer
+        self.subset_size = subset_size
 
         self.extra_context=extra_context
         self.extra_supervision=extra_supervision
@@ -779,15 +784,23 @@ class SamsumDataset_low(Dataset):
         ##################################################
 
         self.data = load_dataset('samsum',split=split_type)
-        total = [i for i in range(len(self.data))]
-        low_res = random.sample(total,len(self.data)//10)
-        whole_dialogue = self.data['dialogue']
-        whole_summary = self.data['summary']
-        whole_id = self.data['id']
+        #total = [i for i in range(len(self.data))]
+        #self.subset_size = subset_size#int(0.1*len(self.data))
+        subset_indices = random.sample(range(len(self.data)), int(0.5*len(self.data)))
+        self.data = self.data.select(subset_indices)
 
-        self.dialogue = [whole_dialogue[i] for i in low_res]
-        self.summary = [whole_summary[i] for i in low_res]
-        self.id = [whole_id[i] for i in low_res]
+        #low_res = random.sample(total,len(self.data)//10)
+        #whole_dialogue = self.data['dialogue']
+        #whole_summary = self.data['summary']
+        #whole_id = self.data['id']
+
+        #self.dialogue = [whole_dialogue[i] for i in low_res]
+        #self.summary = [whole_summary[i] for i in low_res]
+        #self.id = [whole_id[i] for i in low_res]
+
+        self.dialogue = self.data['dialogue']
+        self.summary = self.data['summary']
+        self.id = self.data['id']
 
         self.nlp = spacy.load('en_core_web_sm')
         
@@ -854,8 +867,8 @@ class SamsumDataset_low(Dataset):
 
     def __getitem__(self, index):
         if self.extra_context==False:
-            print("##################### changes in line 859 and 923: ask to professor. Bug? operation in line 784 does not work properly")
-            encoded_dialogue = self.tokenizer(self.dialogue[(index//10)], 
+            #print("##################### changes in line 859 and 923: ask to professor. Bug? operation in line 784 does not work properly")
+            encoded_dialogue = self.tokenizer(self.dialogue[index], 
                                             padding='max_length', 
                                             truncation=True, 
                                             max_length=self.encoder_max_len, 
@@ -919,7 +932,7 @@ class SamsumDataset_low(Dataset):
 
         # (1, sequence_length)
         with self.tokenizer.as_target_tokenizer():
-            encoded_summary = self.tokenizer(self.summary[index//10], 
+            encoded_summary = self.tokenizer(self.summary[index], 
                                             padding='max_length', 
                                             truncation=True, 
                                             max_length=self.decoder_max_len, 
@@ -986,10 +999,10 @@ class SamsumDataset_low(Dataset):
         return model_inputs
 
 class SamsumDataset_low_total:
-    def __init__(self, encoder_max_len, decoder_max_len, tokenizer, extra_context=False, extra_supervision=False, paracomet=False,relation="xReason", supervision_relation='isAfter',roberta=False):
-        self.train_dataset = SamsumDataset_low(encoder_max_len, decoder_max_len, 'train',tokenizer,extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta)
-        self.eval_dataset = SamsumDataset_low(encoder_max_len, decoder_max_len, 'validation', tokenizer,extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta)
-        self.test_dataset = SamsumDataset_low(encoder_max_len, decoder_max_len, 'test', tokenizer,extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta)
+    def __init__(self, encoder_max_len, decoder_max_len, tokenizer, subset_size, extra_context=False, extra_supervision=False, paracomet=False,relation="xReason", supervision_relation='isAfter',roberta=False):
+        self.train_dataset = SamsumDataset_low(encoder_max_len, decoder_max_len, 'train',tokenizer,subset_size, extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta)
+        self.eval_dataset = SamsumDataset_low(encoder_max_len, decoder_max_len, 'validation', tokenizer, subset_size, extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta)
+        self.test_dataset = SamsumDataset_low(encoder_max_len, decoder_max_len, 'test', tokenizer,subset_size, extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta)
     
     def getTrainData(self):
         return self.train_dataset
