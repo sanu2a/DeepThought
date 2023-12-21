@@ -21,6 +21,7 @@ from dataset import SamsumDataset_total, DialogsumDataset_total, SamsumDataset_l
 # Set Argument Parser
 parser = argparse.ArgumentParser()
 # Training hyperparameters
+parser.add_argument('--subset_size', type = int, default = 1000)
 parser.add_argument('--epoch', type=int, default=20)
 parser.add_argument('--train_batch_size', type=int, default=20)
 #parser.add_argument('--display_step',type=int, default=2000)
@@ -165,7 +166,11 @@ elif args.dataset_name=='dialogsum':
     eval_dataset = total_dataset.getEvalData()
     test_dataset = total_dataset.getTestData()
 elif args.dataset_name=='samsum_low':
-    total_dataset = SamsumDataset_low_total(args.encoder_max_len,args.decoder_max_len,tokenizer,extra_context=False,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation,roberta=args.use_roberta)
+    total_dataset = SamsumDataset_low_total(args.encoder_max_len,args.decoder_max_len,tokenizer,
+                                            args.subset_size, extra_context=False,
+                                            paracomet=args.use_paracomet,relation=args.relation,
+                                            supervision_relation=args.supervision_relation,
+                                            roberta=args.use_roberta)
     train_dataset = total_dataset.getTrainData()
     eval_dataset = total_dataset.getEvalData()
     test_dataset = total_dataset.getTestData()
