@@ -786,7 +786,7 @@ class SamsumDataset_low(Dataset):
         self.data = load_dataset('samsum',split=split_type)
         #total = [i for i in range(len(self.data))]
         #self.subset_size = subset_size#int(0.1*len(self.data))
-        subset_indices = random.sample(range(len(self.data)), int(0.5*len(self.data)))
+        subset_indices = random.sample(range(len(self.data)), int((self.subset_size)/100 * int(len(self.data))))
         self.data = self.data.select(subset_indices)
 
         #low_res = random.sample(total,len(self.data)//10)
