@@ -786,14 +786,15 @@ class SamsumDataset_low(Dataset):
         self.data = load_dataset('samsum',split=split_type)
         #total = [i for i in range(len(self.data))]
         #self.subset_size = subset_size#int(0.1*len(self.data))
-        subset_indices = random.sample(range(len(self.data)), int((self.subset_size)/100 * int(len(self.data))))
-        self.data = self.data.select(subset_indices)
+        
+        
 
         #low_res = random.sample(total,len(self.data)//10)
         #whole_dialogue = self.data['dialogue']
         #whole_summary = self.data['summary']
         #whole_id = self.data['id']
-
+        subset_indices = random.sample(range(len(self.data)), int((self.subset_size)/100 * int(len(self.data))))
+        self.data = self.data.select(subset_indices)
         #self.dialogue = [whole_dialogue[i] for i in low_res]
         #self.summary = [whole_summary[i] for i in low_res]
         #self.id = [whole_id[i] for i in low_res]
@@ -809,30 +810,36 @@ class SamsumDataset_low(Dataset):
         ###########################
         if self.extra_context==True:
             if self.paracomet==False:
-                with open(os.path.join(DATA_DIR, f"preprocessed/samsum/comet_{self.split_type}.json")) as f:
+                #with open(os.path.join(DATA_DIR, f"preprocessed/samsum/comet_{self.split_type}.json")) as f:
+                with open(f"../data/COMET_data/comet/dialogue/samsum/comet_{self.split_type}.json") as f:
                     self.dialogue_comet_inference = json.load(f)
                 
                 if self.roberta:
-                    with open(os.path.join(DATA_DIR, f"RobertaClassifier/samsum/roberta_classified_top1_{self.split_type}.json")) as f:
+                    #with open(os.path.join(DATA_DIR, f"RobertaClassifier/samsum/roberta_classified_top1_{self.split_type}.json")) as f:
+                    with open(f"../data/COMET_data/comet/dialogue/samsum/roberta_nli/roberta_classified_top1_{self.split_type}.json") as f: 
                         self.roberta_classified_z = json.load(f)
                     
             else:
-                with open(os.path.join(DATA_DIR,f"narrative_inference_demo/samsum_preprocess/collated/dialog_{self.split_type}_split5_collated.json")) as f:
+                #with open(os.path.join(DATA_DIR,f"narrative_inference_demo/samsum_preprocess/collated/dialog_{self.split_type}_split5_collated.json")) as f:
+                with open(f"../data/COMET_data/paracomet/dialogue/samsum/dialog_{self.split_type}_split5_collated.json") as f:
                     self.dialogue_comet_inference = json.load(f)
               
         
         if self.extra_supervision==True: # use commonsense w
             if self.split_type=='train':
                 if self.paracomet==False: # plain COMET
-                    with open(os.path.join(DATA_DIR,"preprocessed/samsum/comet_train_w.json")) as f:
+                    #with open(os.path.join(DATA_DIR,"preprocessed/samsum/comet_train_w.json")) as f:
+                    with open(f"../data/COMET_data/comet/summary/samsum/comet_train_w.json") as f:
                         self.summary_comet_inference = json.load(f)
 
                     if self.roberta:
-                        with open(os.path.join(DATA_DIR, f"RobertaClassifier/samsum/roberta_classified_top1_w.json")) as f:
+                        with open(f"../data/COMET_data/comet/summary/samsum/roberta_nli/roberta_classified_top1_w.json") as f:
+                        #with open(os.path.join(DATA_DIR, f"RobertaClassifier/samsum/roberta_classified_top1_w.json")) as f:
                             self.roberta_classified_w = json.load(f)
                 else:
-                    with open(os.path.join(DATA_DIR,"narrative_inference_demo/samsum_preprocess/collated/summary_train_split5_collated.json")) as f:
-                        self.summary_comet_inference = json.load(f)
+                    #with open(os.path.join(DATA_DIR,"narrative_inference_demo/samsum_preprocess/collated/summary_train_split5_collated.json")) as f:
+                    with open(f"../data/COMET_data/paracomet/summary/samsum/summary_train_split5_collated.json") as f:
+                      self.summary_comet_inference = json.load(f)
         
         self.data_len = len(self.data)
 
