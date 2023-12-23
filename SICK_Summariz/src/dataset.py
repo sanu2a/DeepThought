@@ -9,7 +9,12 @@ import spacy
 import re
 import random
 import argparse
-
+#from transformers import BertTokenizer, BertForMaskedLM, BertModel
+#from bert_score import BERTScorer
+#from evaluate import load
+import numpy as np
+from bert_score import score
+from sklearn.metrics.pairwise import cosine_similarity
 
 
 class SamsumDataset(Dataset):
@@ -848,6 +853,38 @@ class SamsumDataset_low(Dataset):
         # self.low_res = random.sample(total,self.data_len//10)
         # print(self.low_res)
 
+
+    def compute_best_relation(self, sentence, d: dict):
+      #print(sentence)
+      encoded_sentence = self.tokenizer(sentence,
+                                            padding='max_length', 
+                                            truncation=True, 
+                                            max_length=self.encoder_max_len, 
+                                            return_tensors='pt')
+      commonsenseDict = {}
+      commonsenseDict['HinderedBy'] = d['HinderedBy'][0]
+      commonsenseDict['xWant'] = d['xWant'][0]
+      commonsenseDict['xIntent'] = d['xIntent'][0]
+      commonsenseDict['xNeed'] = d['xNeed'][0]
+      commonsenseDict['xReason'] = d['xReason'][0]
+
+      #print(commonsenseDict)
+        
+      for k, v in commonsenseDict.items():
+        encoded = self.tokenizer(v, padding='max_length', 
+                                              truncation=True, 
+                                              max_length=self.encoder_max_len, 
+                                              return_tensors='pt')
+        similarity = cosine_similarity(encoded_sentence['input_ids'], encoded['input_ids'])
+        commonsenseDict[k] = similarity[0]
+      
+      print(commonsenseDict)  
+      return np.argmax(commonsenseDict.values())
+
+
+
+
+
     def process_media_msg(self,sentence, person, commonsense):
         # print(person)
         if ('<file_photo>' in sentence) or ('<photo_file>' in sentence) or ('<file_picture>' in sentence):
@@ -885,18 +922,22 @@ class SamsumDataset_low(Dataset):
                 try:
                     
                     dia = self.dialogue_comet_inference[self.id[index]]
-
+                    #print(dia)
+                    #print(type(sent), len(dia))
                     dialogue=""
                     for sent_idx, sent in enumerate(dia):
+                        #print(sent, type(sent), len(sent))
                         person = sent['speaker'].replace(": ","").replace(":","").strip()
                         sentence = sent['sentence'].strip()
                         if self.roberta:
                             commonsense = self.roberta_classified_z[self.id[index]][str(sent_idx)]["out"]
-                            # print(commonsense)
+                            #print(f"Commonsense: {commonsense}")
                         else:
-                            # print(self.relation)
+                            bestRelation = self.compute_best_relation(sentence, sent)
+                            print(f"Best relation: {bestRelation}")
+                            #print(f"Relation: {self.relation}")
                             commonsense = sent[self.relation][0].strip()
-                            # print(commonsense)
+                            print(f"Commonsense: {commonsense}")
 
                         commonsense = commonsense.replace("PersonX","Person").replace("PersonY","Person")
                         dialogue += person + " said \"" + sentence + ".\"" + '\n'
