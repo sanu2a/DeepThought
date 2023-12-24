@@ -136,8 +136,8 @@ class SamsumDataset(Dataset):
                 ## ADD sentiment
                 if self.sentiment == True :
                     sent = sentiment_analysis(sentence)[0]["label"]
-                    print(sent)
-                    print("commensense", commonsense)
+                    # print(sent)
+                    # print("commensense", commonsense)
                     return "<I> " + commonsense.strip() + "," + sent.strip() + ". </I>" + '\n'
                 else : 
                     return "<I> " + commonsense.strip() + ". </I>" + '\n'
