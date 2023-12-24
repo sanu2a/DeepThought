@@ -136,10 +136,10 @@ class SamsumDataset(Dataset):
                 ## ADD sentiment
                 if self.sentiment == True :
                     sent = sentiment_analysis(sentence)[0]["label"]
-                    # print(sent)
-                    # print("commensense", commonsense)
+                    print("senttobeused")
                     return "<I> " + commonsense.strip() + "," + sent.strip() + ". </I>" + '\n'
                 else : 
+                    print("noosenttobeused")
                     return "<I> " + commonsense.strip() + ". </I>" + '\n'
             else:
                 return "" 
@@ -624,8 +624,6 @@ class DialogsumDataset(Dataset):
                                 ## ADD sentiment
                                 if self.sentiment == True :
                                     sent = sentiment_analysis(sentence)[0]["label"]
-                                    print(sent)
-                                    print("commensense", commonsense)
                                     return "<I> " + commonsense.strip() + "," + sent.strip() + ". </I>" + '\n'
                                 else : 
                                     return "<I> " + commonsense.strip() + ". </I>" + '\n'
@@ -923,9 +921,7 @@ class SamsumDataset_low(Dataset):
                 ## Try to ADD sentiment : Negative / positive
                 if self.sentiment == True :
                     sent = sentiment_analysis(sentence)[0]["label"]
-                    # print(sent)
-                    # print("commensense", commonsense)
-                    return "<I> " + commonsense.strip() + "," + sent.strip() + ". </I>" + '\n'
+                    return "<I> " + commonsense.strip() + "," + sent + ". </I>" + '\n'
                 else : 
                     return "<I> " + commonsense.strip() + ". </I>" + '\n'
             else:

@@ -2,7 +2,6 @@ import os
 os.environ['WANDB_SILENT']="true"
 
 import sys
-sys.path.append('../')
 import argparse
 import random
 import json
@@ -142,6 +141,8 @@ args.vocab_size = vocab_size_list[args.model_name]
 if args.dataset_name not in dataset_list:
     assert "Your Dataset name is not valid"
 
+if args.sentiment == True :
+    print("Sentiment will be injected")
 
 # Set metric
 #metric = load_metric("rouge")
