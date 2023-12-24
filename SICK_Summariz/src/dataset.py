@@ -136,7 +136,8 @@ class SamsumDataset(Dataset):
                 ## ADD sentiment
                 if self.sentiment == True :
                     sent = sentiment_analysis(sentence)[0]["label"]
-                    print("senttobeused")
+                    # print(sent)
+                    # print("commensense", commonsense)
                     return "<I> " + commonsense.strip() + "," + sent.strip() + ". </I>" + '\n'
                 else : 
                     print("noosenttobeused")
@@ -885,7 +886,7 @@ class SamsumDataset_low(Dataset):
       commonsenseDict['xNeed'] = d['xNeed'][0]
       commonsenseDict['xReason'] = d['xReason'][0]
 
-      #print(commonsenseDict)
+      print(commonsenseDict)
         
       for k, v in commonsenseDict.items():
         encoded = self.tokenizer(v, padding='max_length', 
@@ -893,10 +894,10 @@ class SamsumDataset_low(Dataset):
                                               max_length=self.encoder_max_len, 
                                               return_tensors='pt')
         similarity = cosine_similarity(encoded_sentence['input_ids'], encoded['input_ids'])
-        commonsenseDict[k] = similarity[0]
+        commonsenseDict[k] = similarity[0][0]
       
       print(commonsenseDict)  
-      return np.argmax(commonsenseDict.values())
+      return max(commonsenseDict, key=commonsenseDict.get)
 
 
 
@@ -951,12 +952,13 @@ class SamsumDataset_low(Dataset):
                         #print(sent, type(sent), len(sent))
                         person = sent['speaker'].replace(": ","").replace(":","").strip()
                         sentence = sent['sentence'].strip()
+                        print(sentence)
                         if self.roberta:
                             commonsense = self.roberta_classified_z[self.id[index]][str(sent_idx)]["out"]
                             #print(f"Commonsense: {commonsense}")
                         else:
-                            bestRelation = self.compute_best_relation(sentence, sent)
-                            print(f"Best relation: {bestRelation}")
+                            self.relation = self.compute_best_relation(sentence, sent)
+                            print(f"Best relation: {self.relation}")
                             #print(f"Relation: {self.relation}")
                             commonsense = sent[self.relation][0].strip()
                             print(f"Commonsense: {commonsense}")
