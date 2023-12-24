@@ -15,18 +15,21 @@ import argparse
 import numpy as np
 from bert_score import score
 from sklearn.metrics.pairwise import cosine_similarity
+## First Try to inject sentiment  with commensense : existant model already 
+from transformers import pipeline
+sentiment_analysis = pipeline("sentiment-analysis",model="siebert/sentiment-roberta-large-english")
 
 
 class SamsumDataset(Dataset):
     def __init__(self, encoder_max_len, decoder_max_len, split_type, 
                  tokenizer, extra_context=False, extra_supervision=False, 
                  paracomet=False,relation = "xReason", supervision_relation="xIntent", 
-                 roberta=False, sentence_transformer=False):
+                 roberta=False, sentence_transformer=False, sentiment = False):
         self.encoder_max_len = encoder_max_len
         self.decoder_max_len = decoder_max_len
         self.split_type = split_type
         self.tokenizer = tokenizer
-
+        self.sentiment = sentiment
         self.extra_context=extra_context
         self.extra_supervision=extra_supervision
         
@@ -130,7 +133,14 @@ class SamsumDataset(Dataset):
             return "<I> " + person + " sent a location. </I>" + '\n'
         else:
             if commonsense.strip() != 'none':
-                return "<I> " + commonsense.strip() + ". </I>" + '\n'
+                ## ADD sentiment
+                if self.sentiment == True :
+                    sent = sentiment_analysis(sentence)[0]["label"]
+                    print(sent)
+                    print("commensense", commonsense)
+                    return "<I> " + commonsense.strip() + "," + sent.strip() + ". </I>" + '\n'
+                else : 
+                    return "<I> " + commonsense.strip() + ". </I>" + '\n'
             else:
                 return "" 
 
@@ -309,10 +319,10 @@ class SamsumDataset_total:
     def __init__(self, encoder_max_len, decoder_max_len, tokenizer, 
                  extra_context=False, extra_supervision=False, paracomet=False,
                  relation="xReason", supervision_relation='isAfter',
-                 roberta=False, sentence_transformer=False):
-        self.train_dataset = SamsumDataset(encoder_max_len, decoder_max_len, 'train',tokenizer,extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta, sentence_transformer=sentence_transformer)
-        self.eval_dataset = SamsumDataset(encoder_max_len, decoder_max_len, 'validation', tokenizer,extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta, sentence_transformer=sentence_transformer)
-        self.test_dataset = SamsumDataset(encoder_max_len, decoder_max_len, 'test', tokenizer,extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta, sentence_transformer=sentence_transformer)
+                 roberta=False, sentence_transformer=False, sentiment = False):
+        self.train_dataset = SamsumDataset(encoder_max_len, decoder_max_len, 'train',tokenizer,extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta, sentence_transformer=sentence_transformer, sentiment = sentiment)
+        self.eval_dataset = SamsumDataset(encoder_max_len, decoder_max_len, 'validation', tokenizer,extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta, sentence_transformer=sentence_transformer,  sentiment = sentiment)
+        self.test_dataset = SamsumDataset(encoder_max_len, decoder_max_len, 'test', tokenizer,extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta, sentence_transformer=sentence_transformer,  sentiment = sentiment)
     
     def getTrainData(self):
         return self.train_dataset
@@ -359,12 +369,12 @@ def custom_load_dataset(type,split):
 
 
 class DialogsumDataset(Dataset):
-    def __init__(self, encoder_max_len, decoder_max_len, split_type, tokenizer, extra_context=False, extra_supervision=False, paracomet=False, relation="xReason", supervision_relation="isAfter", roberta=False, sentence_transformer=False):
+    def __init__(self, encoder_max_len, decoder_max_len, split_type, tokenizer, extra_context=False, extra_supervision=False, paracomet=False, relation="xReason", supervision_relation="isAfter", roberta=False, sentence_transformer=False, sentiment = False):
         self.encoder_max_len = encoder_max_len
         self.decoder_max_len = decoder_max_len
         self.split_type = split_type
         self.tokenizer = tokenizer
-
+        self.sentiment = sentiment
         self.extra_context=extra_context
         self.extra_supervision=extra_supervision
         
@@ -611,7 +621,16 @@ class DialogsumDataset(Dataset):
                             dialogue += "<I> " + person + " sent a location. </I>" + '\n'
                         else:
                             if commonsense.strip() != 'none':
-                                dialogue += "<I> " + commonsense.strip() + ". </I>" + '\n'
+                                ## ADD sentiment
+                                if self.sentiment == True :
+                                    sent = sentiment_analysis(sentence)[0]["label"]
+                                    print(sent)
+                                    print("commensense", commonsense)
+                                    return "<I> " + commonsense.strip() + "," + sent.strip() + ". </I>" + '\n'
+                                else : 
+                                    return "<I> " + commonsense.strip() + ". </I>" + '\n'
+                            else:
+                                return "" 
 
             encoded_dialogue = self.tokenizer(dialogue,
                                             padding='max_length', 
@@ -733,10 +752,10 @@ class DialogsumDataset_total:
     def __init__(self, encoder_max_len, decoder_max_len, tokenizer, 
                  extra_context=False, extra_supervision=False, paracomet=False, 
                  relation="xReason",roberta=False,supervision_relation='isAfter', 
-                 sentence_transformer=False):
-        self.train_dataset = DialogsumDataset(encoder_max_len, decoder_max_len, 'train',tokenizer,extra_context,extra_supervision,paracomet=paracomet,relation=relation,roberta=roberta,supervision_relation=supervision_relation, sentence_transformer=sentence_transformer)
-        self.eval_dataset = DialogsumDataset(encoder_max_len, decoder_max_len, 'validation', tokenizer,extra_context,extra_supervision,paracomet=paracomet,relation=relation,roberta=roberta,supervision_relation=supervision_relation, sentence_transformer=sentence_transformer)
-        self.test_dataset = DialogsumDataset(encoder_max_len, decoder_max_len, 'test', tokenizer,extra_context,extra_supervision,paracomet=paracomet,relation=relation,roberta=roberta,supervision_relation=supervision_relation, sentence_transformer=sentence_transformer)
+                 sentence_transformer=False, sentiment = False):
+        self.train_dataset = DialogsumDataset(encoder_max_len, decoder_max_len, 'train',tokenizer,extra_context,extra_supervision,paracomet=paracomet,relation=relation,roberta=roberta,supervision_relation=supervision_relation, sentence_transformer=sentence_transformer,  sentiment = sentiment)
+        self.eval_dataset = DialogsumDataset(encoder_max_len, decoder_max_len, 'validation', tokenizer,extra_context,extra_supervision,paracomet=paracomet,relation=relation,roberta=roberta,supervision_relation=supervision_relation, sentence_transformer=sentence_transformer,  sentiment = sentiment)
+        self.test_dataset = DialogsumDataset(encoder_max_len, decoder_max_len, 'test', tokenizer,extra_context,extra_supervision,paracomet=paracomet,relation=relation,roberta=roberta,supervision_relation=supervision_relation, sentence_transformer=sentence_transformer,  sentiment = sentiment)
         print(self.train_dataset.data_len)
     def getTrainData(self):
         return self.train_dataset
@@ -763,14 +782,14 @@ class TweetsummDataset_total:
 class SamsumDataset_low(Dataset):
     def __init__(self, encoder_max_len, decoder_max_len, split_type, tokenizer, subset_size,
                 extra_context=False, extra_supervision=False, paracomet=False,
-                relation = "xReason", supervision_relation="isAfter", roberta=False):
+                relation = "xReason", supervision_relation="isAfter", roberta=False, sentiment = False):
 
         self.encoder_max_len = encoder_max_len
         self.decoder_max_len = decoder_max_len
         self.split_type = split_type
         self.tokenizer = tokenizer
         self.subset_size = subset_size
-
+        self.sentiment = sentiment
         self.extra_context=extra_context
         self.extra_supervision=extra_supervision
         ####### THIS WILL BE ALTERED IN THE FUTURE #######
@@ -901,7 +920,14 @@ class SamsumDataset_low(Dataset):
             return "<I> " + person + " sent a location. </I>" + '\n'
         else:
             if commonsense.strip() != 'none':
-                return "<I> " + commonsense.strip() + ". </I>" + '\n'
+                ## Try to ADD sentiment : Negative / positive
+                if self.sentiment == True :
+                    sent = sentiment_analysis(sentence)[0]["label"]
+                    # print(sent)
+                    # print("commensense", commonsense)
+                    return "<I> " + commonsense.strip() + "," + sent.strip() + ". </I>" + '\n'
+                else : 
+                    return "<I> " + commonsense.strip() + ". </I>" + '\n'
             else:
                 return "" 
 
@@ -1047,10 +1073,10 @@ class SamsumDataset_low(Dataset):
         return model_inputs
 
 class SamsumDataset_low_total:
-    def __init__(self, encoder_max_len, decoder_max_len, tokenizer, subset_size, extra_context=False, extra_supervision=False, paracomet=False,relation="xReason", supervision_relation='isAfter',roberta=False):
-        self.train_dataset = SamsumDataset_low(encoder_max_len, decoder_max_len, 'train',tokenizer,subset_size, extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta)
-        self.eval_dataset = SamsumDataset_low(encoder_max_len, decoder_max_len, 'validation', tokenizer, subset_size, extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta)
-        self.test_dataset = SamsumDataset_low(encoder_max_len, decoder_max_len, 'test', tokenizer,subset_size, extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta)
+    def __init__(self, encoder_max_len, decoder_max_len, tokenizer, subset_size, extra_context=False, extra_supervision=False, paracomet=False,relation="xReason", supervision_relation='isAfter',roberta=False, sentiment = False):
+        self.train_dataset = SamsumDataset_low(encoder_max_len, decoder_max_len, 'train',tokenizer,subset_size, extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta, sentiment = sentiment)
+        self.eval_dataset = SamsumDataset_low(encoder_max_len, decoder_max_len, 'validation', tokenizer, subset_size, extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta,  sentiment = sentiment)
+        self.test_dataset = SamsumDataset_low(encoder_max_len, decoder_max_len, 'test', tokenizer,subset_size, extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta,  sentiment = sentiment)
     
     def getTrainData(self):
         return self.train_dataset
