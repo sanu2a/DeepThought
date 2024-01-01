@@ -16,9 +16,11 @@ import numpy as np
 from bert_score import score
 from sklearn.metrics.pairwise import cosine_similarity
 ## First Try to inject sentiment  with commensense : existant model already 
-from transformers import pipeline
-sentiment_analysis = pipeline("sentiment-analysis",model="siebert/sentiment-roberta-large-english")
-
+# from transformers import pipeline
+# sentiment_analysis = pipeline("sentiment-analysis",model="siebert/sentiment-roberta-large-english")
+# Emotion analysis
+from pysentimiento import create_analyzer
+emotion_analyzer = create_analyzer(task="emotion", lang="en")
 
 class SamsumDataset(Dataset):
     def __init__(self, encoder_max_len, decoder_max_len, split_type, 
@@ -135,12 +137,13 @@ class SamsumDataset(Dataset):
             if commonsense.strip() != 'none':
                 ## ADD sentiment
                 if self.sentiment == True :
-                    sent = sentiment_analysis(sentence)[0]["label"]
-                    # print(sent)
-                    # print("commensense", commonsense)
-                    return "<I> " + commonsense.strip() + "," + sent.strip() + ". </I>" + '\n'
+                #     sent = sentiment_analysis(sentence)[0]["label"]
+                #     # print(sent)
+                #     # print("commensense", commonsense)
+                    emotion = emotion_analyzer.predict("This is so terrible...").output
+                    return "<I> " + commonsense.strip() + "," + emotion + ". </I>" + '\n'
                 else : 
-                    print("noosenttobeused")
+                #     print("noosenttobeused")
                     return "<I> " + commonsense.strip() + ". </I>" + '\n'
             else:
                 return "" 
@@ -276,7 +279,7 @@ class SamsumDataset(Dataset):
                                                                 return_tensors='pt')
 
                     model_inputs['extra_labels'] = encoded_extra_supervision['input_ids'].squeeze(0)
-                else:
+                else: 
                     if index==6054:
                         summary_commonsense = "problem with presentation."
                     elif self.roberta:
@@ -625,7 +628,7 @@ class DialogsumDataset(Dataset):
                                 ## ADD sentiment
                                 if self.sentiment == True :
                                     sent = sentiment_analysis(sentence)[0]["label"]
-                                    return "<I> " + commonsense.strip() + "," + sent.strip() + ". </I>" + '\n'
+                                    return "<I> " + commonsense.strip() + "," + sent + ". </I>" + '\n'
                                 else : 
                                     return "<I> " + commonsense.strip() + ". </I>" + '\n'
                             else:
