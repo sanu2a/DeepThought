@@ -6,10 +6,10 @@ The ```preprocessing.ipynb``` notebook was used to obtain a structured JSON file
 - ```train_dialogs```, ```test_dialogs``` and ```val_dialogs``` are dictionaries where each key is the unique ID of a conversation and the corresponding value is a list of the sentences of that conversation (for each sentence we kept track of its original text and the author of that sentence)
 - ```train_summaries```, ```test_summaries``` and ```val_summaries``` are dictionaries the keys are again the IDs of the conversations and each value contains one of the given summaries as a list of sentences.
 
-The ```datasets/all_tweets``` folder contains all the original tweets, along with the ID of the autor.
+The ```datasets/all_tweets``` folder contains all the original tweets, along with the ID of the autors, they can be downloaded [here](https://www.kaggle.com/datasets/thoughtvector/customer-support-on-twitter)
 
-The ```datasets/tweetsumm``` folder contains the summaries for each conversation.
+The ```datasets/tweetsumm``` folder contains the summaries for each conversation, they can be downloaded [here](https://github.com/guyfe/Tweetsumm)
 
-The ```datasets/processed_tweetsumm_data``` folder contains the final files, ready to be processed by Comet for the commonsense etraction.
+The final output files are uploaded in the Drive folder ```NLPdataset/Tweetsumm_Data```, ready to be processed by Comet for the commonsense etraction.
 
 The ```comet.ipynb``` notebook was used to extract the commonsense from the Tweetsumm dataset using COMET.
