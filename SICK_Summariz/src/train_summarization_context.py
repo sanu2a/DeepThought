@@ -127,7 +127,7 @@ vocab_size_list={
     "google/t5-v1_1-large":32128
 }
 dataset_list = [
-    "samsum","dialogsum", "samsum low"
+    "samsum","dialogsum"
 ]
 
 
@@ -158,26 +158,15 @@ tokenizer.add_special_tokens(special_tokens_dict)
 
 # Set dataset
 if args.dataset_name=='samsum':
-    total_dataset = SamsumDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,extra_context=True,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation,roberta=args.use_roberta, sentence_transformer=args.use_sentence_transformer,sentiment = args.sentiment)
+    total_dataset = SamsumDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,subset_size = args.subset_size, extra_context=True,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation,roberta=args.use_roberta, sentence_transformer=args.use_sentence_transformer,sentiment = args.sentiment)
     train_dataset = total_dataset.getTrainData()
     eval_dataset = total_dataset.getEvalData()
     test_dataset = total_dataset.getTestData()
 elif args.dataset_name=='dialogsum':
-    total_dataset = DialogsumDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,extra_context=True,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation, sentence_transformer=args.use_sentence_transformer, roberta=args.use_roberta, sentiment = args.sentiment)
+    total_dataset = DialogsumDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,subset_size = args.subset_size, extra_context=True,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation, sentence_transformer=args.use_sentence_transformer, roberta=args.use_roberta, sentiment = args.sentiment)
     train_dataset = total_dataset.getTrainData()
     eval_dataset = total_dataset.getEvalData()
     test_dataset = total_dataset.getTestData()
-elif args.dataset_name=='samsum_low':
-    total_dataset = SamsumDataset_low_total(args.encoder_max_len,args.decoder_max_len,tokenizer,
-                                            args.subset_size, extra_context=False,
-                                            paracomet=args.use_paracomet,relation=args.relation,
-                                            supervision_relation=args.supervision_relation,
-                                            roberta=args.use_roberta, sentiment = args.sentiment)
-    train_dataset = total_dataset.getTrainData()
-    eval_dataset = total_dataset.getEvalData()
-    test_dataset = total_dataset.getTestData()
-
-
 print('######################################################################')
 print('Training Dataset Size is : ')
 print(len(train_dataset))
