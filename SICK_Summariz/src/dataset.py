@@ -22,15 +22,19 @@ from sklearn.metrics.pairwise import cosine_similarity
 from pysentimiento import create_analyzer
 emotion_analyzer = create_analyzer(task="emotion", lang="en")
 
+#in order to have comparable results
+random.seed(9001)
+
 class SamsumDataset(Dataset):
     def __init__(self, encoder_max_len, decoder_max_len, split_type, 
-                 tokenizer, extra_context=False, extra_supervision=False, 
+                 tokenizer, subset_size, extra_context=False, extra_supervision=False, 
                  paracomet=False,relation = "xReason", supervision_relation="xIntent", 
                  roberta=False, sentence_transformer=False, sentiment = False):
         self.encoder_max_len = encoder_max_len
         self.decoder_max_len = decoder_max_len
         self.split_type = split_type
         self.tokenizer = tokenizer
+        self.subset_size = subset_size
         self.sentiment = sentiment
         self.extra_context=extra_context
         self.extra_supervision=extra_supervision
@@ -48,8 +52,11 @@ class SamsumDataset(Dataset):
         self.sentence_transformer = sentence_transformer
         print(self.relation)
         ##################################################
-        
+        #dict(random.sample(d.items(), n))
+
         self.data = load_dataset('samsum',split=split_type)
+        if self.subset_size != 100:
+          self.data = dict(random.sample(self.data.items(), int((self.subset_size)/100 * len(self.data))))
         self.dialogue = self.data['dialogue']
         self.summary = self.data['summary']
         self.id = self.data['id']
@@ -320,13 +327,13 @@ class SamsumDataset(Dataset):
 
 
 class SamsumDataset_total:
-    def __init__(self, encoder_max_len, decoder_max_len, tokenizer, 
+    def __init__(self, encoder_max_len, decoder_max_len, tokenizer, subset_size,
                  extra_context=False, extra_supervision=False, paracomet=False,
                  relation="xReason", supervision_relation='isAfter',
                  roberta=False, sentence_transformer=False, sentiment = False):
-        self.train_dataset = SamsumDataset(encoder_max_len, decoder_max_len, 'train',tokenizer,extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta, sentence_transformer=sentence_transformer, sentiment = sentiment)
-        self.eval_dataset = SamsumDataset(encoder_max_len, decoder_max_len, 'validation', tokenizer,extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta, sentence_transformer=sentence_transformer,  sentiment = sentiment)
-        self.test_dataset = SamsumDataset(encoder_max_len, decoder_max_len, 'test', tokenizer,extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta, sentence_transformer=sentence_transformer,  sentiment = sentiment)
+        self.train_dataset = SamsumDataset(encoder_max_len, decoder_max_len, 'train',tokenizer,subset_size, extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta, sentence_transformer=sentence_transformer, sentiment = sentiment)
+        self.eval_dataset = SamsumDataset(encoder_max_len, decoder_max_len, 'validation', tokenizer,subset_size, extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta, sentence_transformer=sentence_transformer,  sentiment = sentiment)
+        self.test_dataset = SamsumDataset(encoder_max_len, decoder_max_len, 'test', tokenizer,100, extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta, sentence_transformer=sentence_transformer,  sentiment = sentiment)
     
     def getTrainData(self):
         return self.train_dataset
@@ -340,7 +347,7 @@ class SamsumDataset_total:
 
 def custom_load_dataset(type,split):
     if type == "dialogsum":
-        dir = f"./DialogSum_Data/dialogsum.{split}.jsonl"
+        dir = f"../data/DialogSum_Data/dialogsum.{split}.jsonl"
         data = {'dialogue': [],'summary':[],'id':[]}
         with open(dir, 'r') as json_file:
             json_list = list(json_file)
@@ -373,11 +380,12 @@ def custom_load_dataset(type,split):
 
 
 class DialogsumDataset(Dataset):
-    def __init__(self, encoder_max_len, decoder_max_len, split_type, tokenizer, extra_context=False, extra_supervision=False, paracomet=False, relation="xReason", supervision_relation="isAfter", roberta=False, sentence_transformer=False, sentiment = False):
+    def __init__(self, encoder_max_len, decoder_max_len, split_type, tokenizer, subset_size, extra_context=False, extra_supervision=False, paracomet=False, relation="xReason", supervision_relation="isAfter", roberta=False, sentence_transformer=False, sentiment = False):
         self.encoder_max_len = encoder_max_len
         self.decoder_max_len = decoder_max_len
         self.split_type = split_type
         self.tokenizer = tokenizer
+        self.subset_size = subset_size
         self.sentiment = sentiment
         self.extra_context=extra_context
         self.extra_supervision=extra_supervision
@@ -404,12 +412,25 @@ class DialogsumDataset(Dataset):
         ##################################################
 
         self.data = custom_load_dataset('dialogsum', split=split_type)
-        self.dialogue = self.data['dialogue']
-        self.summary = self.data['summary']
+        #print(len(self.data['dialogue']), len(self.data['id']), len(self.data['summary'])) All the same
+        if self.subset_size != 100 and (split_type == 'train' or split_type == 'validation'):
+          selected_indices = random.sample(range(len(self.data['dialogue'])), int((self.subset_size)/100 * len(self.data['dialogue'])))
+          #print(selected_indices, len(selected_indices))
+          #self.data = dict(random.sample(self.data.items(), int((self.subset_size)/100 * len(self.data))))
+          #subset_indices = random.sample(range(len(self.data)), int((self.subset_size)/100 * int(len(self.data))))
+          #self.data = self.data.select(subset_indices)
+          #print(self.data)
+          self.dialogue = [self.data["dialogue"][i]  for i in selected_indices]
+          self.summary = [self.data["summary"][i]  for i in selected_indices]
+          self.id = [self.data["id"][i]  for i in selected_indices]
+        else:
+          self.dialogue = self.data['dialogue']
+          self.summary = self.data['summary']
+          self.id = self.data['id']
         if split_type == "test":
             self.summary2 = self.data['summary2']
             self.summary3 = self.data['summary3']
-        self.id = self.data['id']
+            self.id = self.data['id']
 
         self.nlp = spacy.load('en_core_web_sm')
         
@@ -751,13 +772,13 @@ class DialogsumDataset(Dataset):
 
 
 class DialogsumDataset_total:
-    def __init__(self, encoder_max_len, decoder_max_len, tokenizer, 
+    def __init__(self, encoder_max_len, decoder_max_len, tokenizer, subset_size, 
                  extra_context=False, extra_supervision=False, paracomet=False, 
                  relation="xReason",roberta=False,supervision_relation='isAfter', 
                  sentence_transformer=False, sentiment = False):
-        self.train_dataset = DialogsumDataset(encoder_max_len, decoder_max_len, 'train',tokenizer,extra_context,extra_supervision,paracomet=paracomet,relation=relation,roberta=roberta,supervision_relation=supervision_relation, sentence_transformer=sentence_transformer,  sentiment = sentiment)
-        self.eval_dataset = DialogsumDataset(encoder_max_len, decoder_max_len, 'validation', tokenizer,extra_context,extra_supervision,paracomet=paracomet,relation=relation,roberta=roberta,supervision_relation=supervision_relation, sentence_transformer=sentence_transformer,  sentiment = sentiment)
-        self.test_dataset = DialogsumDataset(encoder_max_len, decoder_max_len, 'test', tokenizer,extra_context,extra_supervision,paracomet=paracomet,relation=relation,roberta=roberta,supervision_relation=supervision_relation, sentence_transformer=sentence_transformer,  sentiment = sentiment)
+        self.train_dataset = DialogsumDataset(encoder_max_len, decoder_max_len, 'train',tokenizer,subset_size, extra_context,extra_supervision,paracomet=paracomet,relation=relation,roberta=roberta,supervision_relation=supervision_relation, sentence_transformer=sentence_transformer,  sentiment = sentiment)
+        self.eval_dataset = DialogsumDataset(encoder_max_len, decoder_max_len, 'validation', tokenizer,subset_size, extra_context,extra_supervision,paracomet=paracomet,relation=relation,roberta=roberta,supervision_relation=supervision_relation, sentence_transformer=sentence_transformer,  sentiment = sentiment)
+        self.test_dataset = DialogsumDataset(encoder_max_len, decoder_max_len, 'test', tokenizer,100, extra_context,extra_supervision,paracomet=paracomet,relation=relation,roberta=roberta,supervision_relation=supervision_relation, sentence_transformer=sentence_transformer,  sentiment = sentiment)
         print(self.train_dataset.data_len)
     def getTrainData(self):
         return self.train_dataset
@@ -1077,7 +1098,7 @@ class SamsumDataset_low_total:
     def __init__(self, encoder_max_len, decoder_max_len, tokenizer, subset_size, extra_context=False, extra_supervision=False, paracomet=False,relation="xReason", supervision_relation='isAfter',roberta=False, sentiment = False):
         self.train_dataset = SamsumDataset_low(encoder_max_len, decoder_max_len, 'train',tokenizer,subset_size, extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta, sentiment = sentiment)
         self.eval_dataset = SamsumDataset_low(encoder_max_len, decoder_max_len, 'validation', tokenizer, subset_size, extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta,  sentiment = sentiment)
-        self.test_dataset = SamsumDataset_low(encoder_max_len, decoder_max_len, 'test', tokenizer,subset_size, extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta,  sentiment = sentiment)
+        self.test_dataset = SamsumDataset(encoder_max_len, decoder_max_len, 'test', tokenizer, extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta,  sentiment = sentiment)
     
     def getTrainData(self):
         return self.train_dataset
