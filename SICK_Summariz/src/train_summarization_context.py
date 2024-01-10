@@ -280,7 +280,7 @@ finetune_trainer.train()
 # Save final weights
 finetune_trainer.save_model(args.best_finetune_weight_path)
 
-
+'''
 # Run Evaluation on Test Data
 results = finetune_trainer.predict(
     test_dataset=test_dataset,
@@ -292,7 +292,7 @@ print('######################################################################')
 print("Final Rouge Results are : ",metrics)
 print('######################################################################')
 
-'''
+
 # Write evaluation predictions on txt file
 decoded_preds = tokenizer.batch_decode(predictions, skip_special_tokens=True)
     # Replace -100 in the labels as we can't decode them.
