@@ -56,7 +56,8 @@ class SamsumDataset(Dataset):
 
         self.data = load_dataset('samsum',split=split_type)
         if self.subset_size != 100:
-          self.data = dict(random.sample(self.data.items(), int((self.subset_size)/100 * len(self.data))))
+            subset_indices = random.sample(range(len(self.data)), int((self.subset_size)/100 * int(len(self.data))))
+            self.data = self.data.select(subset_indices)
         self.dialogue = self.data['dialogue']
         self.summary = self.data['summary']
         self.id = self.data['id']
