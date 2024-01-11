@@ -130,6 +130,13 @@ dataset_list = [
     "samsum","dialogsum"
 ]
 
+relation_list_comet = [
+  'best_relation', 'xNeed', 'HinderedBy', 'xWant',  'xReason', 'xIntent' 
+]
+relation_list_paracomet = [
+  'best_relation', 'xIntent', 'xWant', 'xReact', 'xEffect', 'xAttr'
+]
+
 
 # Refine arguments based on global values
 if args.model_name not in model_checkpoint_list:
@@ -310,5 +317,6 @@ with open(args.test_output_file_name,"w") as f:
     for i in decoded_preds:
         f.write(i.replace("\n","")+"\n")
 '''
+
 # END WANDB log
 wandb.finish()
