@@ -27,8 +27,8 @@ random.seed(9001)
 
 class SamsumDataset(Dataset):
     def __init__(self, encoder_max_len, decoder_max_len, split_type, 
-                 tokenizer, subset_size, extra_context=False, extra_supervision=False, 
-                 paracomet=False,relation = "xReason", supervision_relation="xIntent", 
+                 tokenizer, subset_size, relation, extra_context=False, extra_supervision=False, 
+                 paracomet=False, supervision_relation="xIntent", 
                  roberta=False, sentence_transformer=False, sentiment = False):
         self.encoder_max_len = encoder_max_len
         self.decoder_max_len = decoder_max_len
@@ -43,6 +43,7 @@ class SamsumDataset(Dataset):
         self.paracomet = paracomet
         if self.paracomet and (self.relation[0] != "<"):
             self.relation = f"<|{self.relation}|>"
+            
         
         self.supervision_relation = supervision_relation
         if self.paracomet and (self.supervision_relation[0] != "<"):
@@ -56,13 +57,16 @@ class SamsumDataset(Dataset):
 
         self.data = load_dataset('samsum',split=split_type)
         if self.subset_size != 100:
-            subset_indices = random.sample(range(len(self.data)), int((self.subset_size)/100 * int(len(self.data))))
-            self.data = self.data.select(subset_indices)
+          subset_indices = random.sample(range(len(self.data)), int((self.subset_size)/100 * int(len(self.data))))
+          self.data = self.data.select(subset_indices)
         self.dialogue = self.data['dialogue']
         self.summary = self.data['summary']
         self.id = self.data['id']
 
         self.nlp = spacy.load('en_core_web_sm')
+        
+
+
         
         ###########################
         #   LOAD .json dataset    #
@@ -127,6 +131,42 @@ class SamsumDataset(Dataset):
         # self.low_res = random.sample(total,self.data_len/10)
         # print(self.low_res)
 
+
+    def compute_best_relation(self, sentence, d: dict):
+      print(f"Sentence: {sentence}")
+      encoded_sentence = self.tokenizer(sentence,
+                                            padding='max_length', 
+                                            truncation=True, 
+                                            max_length=self.encoder_max_len, 
+                                            return_tensors='pt')
+      commonsenseDict = {}
+      if self.paracomet:
+        commonsenseDict['xReact'] = d['<|xReact|>'][0]
+        commonsenseDict['xWant'] = d['<|xWant|>'][0]
+        commonsenseDict['xIntent'] = d['<|xIntent|>'][0]
+        commonsenseDict['xAttr'] = d['<|xAttr|>'][0]
+        commonsenseDict['xEffect'] = d['<|xEffect|>'][0]
+      else:
+        commonsenseDict['HinderedBy'] = d['HinderedBy'][0]
+        commonsenseDict['xWant'] = d['xWant'][0]
+        commonsenseDict['xIntent'] = d['xIntent'][0]
+        commonsenseDict['xNeed'] = d['xNeed'][0]
+        commonsenseDict['xReason'] = d['xReason'][0]
+
+      print(commonsenseDict)
+        
+      for k, v in commonsenseDict.items():
+        encoded = self.tokenizer(v, padding='max_length', 
+                                              truncation=True, 
+                                              max_length=self.encoder_max_len, 
+                                              return_tensors='pt')
+        similarity = cosine_similarity(encoded_sentence['input_ids'], encoded['input_ids'])
+        commonsenseDict[k] = similarity[0][0]
+      
+      print(commonsenseDict)
+      print(f"The best relation is: {max(commonsenseDict, key=commonsenseDict.get)}")
+      return max(commonsenseDict, key=commonsenseDict.get)
+
     def process_media_msg(self,sentence, person, commonsense):
         # print(person)
         if ('<file_photo>' in sentence) or ('<photo_file>' in sentence) or ('<file_picture>' in sentence):
@@ -148,7 +188,7 @@ class SamsumDataset(Dataset):
                 #     sent = sentiment_analysis(sentence)[0]["label"]
                 #     # print(sent)
                 #     # print("commensense", commonsense)
-                    emotion = emotion_analyzer.predict("This is so terrible...").output
+                    emotion = emotion_analyzer.predict(sentence).output
                     return "<I> " + commonsense.strip() + "," + emotion + ". </I>" + '\n'
                 else : 
                 #     print("noosenttobeused")
@@ -184,6 +224,8 @@ class SamsumDataset(Dataset):
                         elif self.sentence_transformer:
                             commonsense = self.sentence_transformer_classified_z[self.id[index]][str(sent_idx)]["out"]
                             # print(commonsense)
+                        elif self.relation == 'best_relation':
+                            commonsense = self.compute_best_relation(sentence, sent)
                         else:
                             #print(self.relation)
                             commonsense = sent[self.relation][0].strip()
@@ -200,9 +242,10 @@ class SamsumDataset(Dataset):
 
                    
                         
-            else: # use PARACOMETd
+            else: # use PARACOMET
                 try:
                     dia = self.dialogue_comet_inference[self.id[index]]
+                    #print(dia)
                     dialogue=""
                     for sent_idx, sent in dia.items():
                         sentence = sent['sentence'].strip()
@@ -214,9 +257,12 @@ class SamsumDataset(Dataset):
                             
                         elif self.sentence_transformer:
                             commonsense = self.sentence_transformer_classified_z[self.id[index]][str(sent_idx)]["out"]
-                            
+                        elif self.relation ==  '<|best_relation|>':    
+                            commonsense = self.compute_best_relation(sentence, sent)
+                            print(commonsense)
                         else:
-                            commonsense = sent[self.relation][0].strip()
+                            #commonsense = sent[self.relation][0].strip() "xReason" is not present in PARACOMET 
+                            commonsense = sent['<|xIntent|>'][0].strip()
                             
 
                         dialogue += sentence +'\n'
@@ -328,13 +374,13 @@ class SamsumDataset(Dataset):
 
 
 class SamsumDataset_total:
-    def __init__(self, encoder_max_len, decoder_max_len, tokenizer, subset_size,
+    def __init__(self, encoder_max_len, decoder_max_len, tokenizer, subset_size, relation, 
                  extra_context=False, extra_supervision=False, paracomet=False,
-                 relation="xReason", supervision_relation='isAfter',
+                 supervision_relation='isAfter',
                  roberta=False, sentence_transformer=False, sentiment = False):
-        self.train_dataset = SamsumDataset(encoder_max_len, decoder_max_len, 'train',tokenizer,subset_size, extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta, sentence_transformer=sentence_transformer, sentiment = sentiment)
-        self.eval_dataset = SamsumDataset(encoder_max_len, decoder_max_len, 'validation', tokenizer,subset_size, extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta, sentence_transformer=sentence_transformer,  sentiment = sentiment)
-        self.test_dataset = SamsumDataset(encoder_max_len, decoder_max_len, 'test', tokenizer,100, extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet,relation=relation, supervision_relation=supervision_relation, roberta=roberta, sentence_transformer=sentence_transformer,  sentiment = sentiment)
+        self.train_dataset = SamsumDataset(encoder_max_len, decoder_max_len, 'train',tokenizer,subset_size, relation, extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet, supervision_relation=supervision_relation, roberta=roberta, sentence_transformer=sentence_transformer, sentiment = sentiment)
+        self.eval_dataset = SamsumDataset(encoder_max_len, decoder_max_len, 'validation', tokenizer,subset_size, relation, extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet, supervision_relation=supervision_relation, roberta=roberta, sentence_transformer=sentence_transformer,  sentiment = sentiment)
+        self.test_dataset = SamsumDataset(encoder_max_len, decoder_max_len, 'test', tokenizer,100, relation, extra_context=extra_context,extra_supervision=extra_supervision,paracomet=paracomet, supervision_relation=supervision_relation, roberta=roberta, sentence_transformer=sentence_transformer,  sentiment = sentiment)
     
     def getTrainData(self):
         return self.train_dataset
