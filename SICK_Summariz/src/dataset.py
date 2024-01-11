@@ -140,7 +140,7 @@ class SamsumDataset(Dataset):
                 #     sent = sentiment_analysis(sentence)[0]["label"]
                 #     # print(sent)
                 #     # print("commensense", commonsense)
-                    emotion = emotion_analyzer.predict("This is so terrible...").output
+                    emotion = emotion_analyzer.predict(sentence).output
                     return "<I> " + commonsense.strip() + "," + emotion + ". </I>" + '\n'
                 else : 
                 #     print("noosenttobeused")
