@@ -1,4 +1,6 @@
 import os
+# python inference.py --dataset_name "samsum"  --test_output_file_name="./tmp_result.txt" --use_paracomet True --num_beams 20 --train_configuration="context" --use_sentence_transformer True
+#--model_checkpoint="./new_weights_paracomet_best"
 
 #os.environ['CUDA_DEVICE_ORDER']='PCI_BUS_ID'
 #os.environ['CUDA_VISIBLE_DEVICES']="1"
@@ -6,6 +8,7 @@ import os
 import sys
 sys.path.append('../')
 import nltk
+nltk.download('punkt')
 import numpy as np
 #import tdqm
 import argparse
@@ -17,14 +20,14 @@ from datasets import load_metric
 from data.dataset import SamsumDataset_total, DialogsumDataset_total, MediasumDataset_total, TweetsummDataset_total
 from models.bart import BartForConditionalGeneration_DualDecoder, BartForConditionalGeneration_DualHead
 from tqdm import tqdm
-
+from utils.bleurt import score
 # Set Argument Parser
 parser = argparse.ArgumentParser()
 # Training hyperparameters
 parser.add_argument('--dataset_name',type=str, default='samsum')
-parser.add_argument('--model_checkpoint', type=str, default="./new_weights_comet/final_Trial1_context_comet")
+parser.add_argument('--model_checkpoint', type=str, default="lidiya/bart-base-samsum")
 parser.add_argument('--test_output_file_name', type=str, default='./new_weights_comet/final_Trial1_context_comet.txt')
-parser.add_argument('--train_configuration',type=str,default="full")# base, context, supervision, full
+parser.add_argument('--train_configuration',type=str,default="base")# base, context, supervision, full
 parser.add_argument('--encoder_max_len', type=int, default=1024)
 parser.add_argument('--decoder_max_len', type=int, default=100)
 parser.add_argument('--use_paracomet',type=bool,default=False)
@@ -39,9 +42,9 @@ args = parser.parse_args()
 print('######################################################################')
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print('Device:', device)
-print('Current cuda device:', torch.cuda.current_device())
-print('Count of using GPUs:', torch.cuda.device_count())
-print(torch.cuda.get_device_name())
+#print('Current cuda device:', torch.cuda.current_device())
+#print('Count of using GPUs:', torch.cuda.device_count())
+#print(torch.cuda.get_device_name())
 print('######################################################################')
 
 # Define Global Values
@@ -76,11 +79,12 @@ model_checkpoint_list = [
     "final_Trial5_full_BART_Dialogsum", #xsum
     "final_Trial6_full_BART_Dialogsum", #xsum
 ]
+
 extra_supervision = False
 extra_context=False    
 # Samsum
 if args.train_configuration == "base":
-    finetune_model = BartForConditionalGeneration.from_pretrained(args.model_checkpoint)
+    finetune_model = BartForConditionalGeneration.from_pretrained("./new_weights_sickplus_best/")
 elif args.train_configuration == "context":
     finetune_model = BartForConditionalGeneration.from_pretrained(args.model_checkpoint)
     extra_context = True
@@ -111,6 +115,10 @@ metric = load_metric("../utils/rouge.py")
 metric2 = load_metric("../utils/rouge.py")
 metric3 = load_metric("../utils/rouge.py")
 
+#Bluert
+bluert_checkpoint = "../utils/bleurt/bleurt_checkpoint/"
+scorer = score.BleurtScorer(bluert_checkpoint)
+
 bertscore_metric = load_metric("bertscore",lang='en',model_type='bert-base-uncased')
 if args.dataset_name=='dialogsum':
     bertscore_metric2 = load_metric("bertscore",lang='en',model_type='bert-base-uncased')
@@ -118,7 +126,7 @@ if args.dataset_name=='dialogsum':
 
 
 # Load Tokenizer associated to the model
-tokenizer = AutoTokenizer.from_pretrained(args.model_checkpoint)
+tokenizer = AutoTokenizer.from_pretrained("lidiya/bart-base-samsum")
 
 
 # Set dataset
@@ -146,6 +154,8 @@ total_decoded_labels = []
 
 with torch.no_grad():
     for idx, data in enumerate(tqdm(test_dataloader),0):
+        if idx==100:
+           break
         # if idx % 40 ==0:
         #     print(total_rouge1_scores)
         #     print(idx)
@@ -171,15 +181,16 @@ with torch.no_grad():
         decoded_preds = ["\n".join(nltk.sent_tokenize(pred.strip())) for pred in decoded_preds]
         decoded_labels = ["\n".join(nltk.sent_tokenize(label.strip())) for label in decoded_labels]
         #print('################')
-        #print(decoded_preds)
-        #print()
-        #print()
+       # print(decoded_preds)
+       # print()
+       # print()
         #print(decoded_labels)
         #print('############')
         metric.add_batch(predictions=decoded_preds, references=decoded_labels)
         bertscore_metric.add_batch(predictions=decoded_preds, references=decoded_labels)
-
+        #scores = scorer.score(references=decoded_labels, candidates=decoded_preds)
        
+        #print(scores)
 
         if args.dataset_name=='dialogsum':
             y2 = data['labels2'].to(device,dtype=torch.long)
@@ -205,13 +216,24 @@ with torch.no_grad():
   
         total_decoded_preds.append(decoded_preds)
         total_decoded_labels.append(decoded_labels)
+
+    
         
        
         
             
-       
+print(total_decoded_preds)
+print(len(total_decoded_preds))
 bertscore_result = bertscore_metric.compute(lang='en',model_type='bert-base-uncased')
 result = metric.compute(use_stemmer=True)
+total_decoded_labels = [item for sublist in total_decoded_labels for item in sublist]
+total_decoded_preds = [item for sublist in total_decoded_preds for item in sublist]
+scores = scorer.score(references=total_decoded_labels, candidates=total_decoded_preds)
+scores = np.array(scores)
+#assert isinstance(scores, list) and len(scores) == 1
+print("--------BLUERTSCORE--------")
+print(scores.mean())
+print("----------------")
 
 if args.dataset_name == "dialogsum":
     result2 = metric2.compute(use_stemmer=True)
