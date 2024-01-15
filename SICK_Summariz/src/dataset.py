@@ -119,7 +119,7 @@ class SamsumDataset(Dataset):
         # self.low_res = random.sample(total,self.data_len/10)
         # print(self.low_res)
 
-    def process_media_msg(self,sentence, person, commonsense):
+    def process_media_msg(self,sentence, person, commonsense, previous):
         # print(person)
         if ('<file_photo>' in sentence) or ('<photo_file>' in sentence) or ('<file_picture>' in sentence):
             return "<I> " + person + " sent a photo. </I>" + '\n' 
@@ -137,13 +137,15 @@ class SamsumDataset(Dataset):
             if commonsense.strip() != 'none':
                 ## ADD sentiment
                 if self.sentiment == True :
-                #     sent = sentiment_analysis(sentence)[0]["label"]
-                #     # print(sent)
-                #     # print("commensense", commonsense)
                     emotion = emotion_analyzer.predict(sentence).output
+                    if emotion == "others" :
+                        emotion2 = emotion_analyzer.predict(previous).output 
+                        if emotion2!="others" :
+                            print("new emotion detected is", emotion2, "to" ,sentence)
+                        # #print("--------------------- New emotion  : ", emotion)
+                        return "<I> " + commonsense.strip() + "," + emotion2 + ". </I>" + '\n'
                     return "<I> " + commonsense.strip() + "," + emotion + ". </I>" + '\n'
                 else : 
-                #     print("noosenttobeused")
                     return "<I> " + commonsense.strip() + ". </I>" + '\n'
             else:
                 return "" 
@@ -165,8 +167,10 @@ class SamsumDataset(Dataset):
                 try:
                     
                     dia = self.dialogue_comet_inference[self.id[index]]
-                    
+                    n = len(dia)
                     dialogue=""
+                    dialogue_clean = ""
+                    previous = []
                     for sent_idx, sent in enumerate(dia):
                         person = sent['speaker'].replace(": ","").replace(":","").strip()
                         sentence = sent['sentence'].strip()
@@ -175,17 +179,20 @@ class SamsumDataset(Dataset):
 
                         elif self.sentence_transformer:
                             commonsense = self.sentence_transformer_classified_z[self.id[index]][str(sent_idx)]["out"]
-                            # print(commonsense)
                         else:
-                            #print(self.relation)
                             commonsense = sent[self.relation][0].strip()
-                            #print(commonsense)
 
                         commonsense = commonsense.replace("PersonX","Person").replace("PersonY","Person")
                         dialogue += person + " said \"" + sentence + ".\"" + '\n'
+                        dialogue_clean +=  person + " said \"" + sentence + ".\"" + '\n' 
                         if sent['speaker']+sentence != commonsense:
-                            # print(self.process_media_msg(sentence, person, commonsense))
-                            dialogue += self.process_media_msg(sentence, person, commonsense)
+                            try :
+                              previous = '\n'.join(dialogue_clean.splitlines()[-10:])
+                            except KeyError:
+                              previous = dialogue_clean
+                            dialogue += self.process_media_msg(sentence, person, commonsense, previous)
+
+
                 except KeyError:
                     print("key error")
                     dialogue = self.dialogue[index]
@@ -196,11 +203,10 @@ class SamsumDataset(Dataset):
                 try:
                     dia = self.dialogue_comet_inference[self.id[index]]
                     dialogue=""
+                    dialogue_clean = ""
                     for sent_idx, sent in dia.items():
                         sentence = sent['sentence'].strip()
-                        
                         person = sentence.split()[0]
-                        
                         if self.roberta:
                             commonsense = self.roberta_classified_z[self.id[index]][str(sent_idx)]["out"]
                             
@@ -210,11 +216,15 @@ class SamsumDataset(Dataset):
                         else:
                             commonsense = sent[self.relation][0].strip()
                             
-
+                        dialogue_clean += sentence +'\n'
                         dialogue += sentence +'\n'
-
                         if sentence != commonsense:
-                            dialogue += self.process_media_msg(sentence, person, commonsense)
+                            try : 
+                                previous = '\n'.join(dialogue_clean.splitlines()[-10:])
+                            except KeyError:
+                                previous = dialogue_clean
+                            dialogue += self.process_media_msg(sentence, person, commonsense, previous)
+                            #print(previous)
                             
                 except KeyError: # when an error occurred while processing commonsense, just give plain utterance as output
                     print("key error")
@@ -627,8 +637,8 @@ class DialogsumDataset(Dataset):
                             if commonsense.strip() != 'none':
                                 ## ADD sentiment
                                 if self.sentiment == True :
-                                    sent = sentiment_analysis(sentence)[0]["label"]
-                                    return "<I> " + commonsense.strip() + "," + sent + ". </I>" + '\n'
+                                    #sent = sentiment_analysis(sentence)[0]["label"]
+                                    return "<I> " + commonsense.strip() + ". </I>" + '\n'
                                 else : 
                                     return "<I> " + commonsense.strip() + ". </I>" + '\n'
                             else:
@@ -924,7 +934,7 @@ class SamsumDataset_low(Dataset):
             if commonsense.strip() != 'none':
                 ## Try to ADD sentiment : Negative / positive
                 if self.sentiment == True :
-                    sent = sentiment_analysis(sentence)[0]["label"]
+                    #sent = sentiment_analysis(sentence)[0]["label"]
                     return "<I> " + commonsense.strip() + "," + sent + ". </I>" + '\n'
                 else : 
                     return "<I> " + commonsense.strip() + ". </I>" + '\n'
@@ -948,14 +958,12 @@ class SamsumDataset_low(Dataset):
                 try:
                     
                     dia = self.dialogue_comet_inference[self.id[index]]
-                    #print(dia)
-                    #print(type(sent), len(dia))
+                    #n = len(dia)
                     dialogue=""
                     for sent_idx, sent in enumerate(dia):
-                        #print(sent, type(sent), len(sent))
                         person = sent['speaker'].replace(": ","").replace(":","").strip()
                         sentence = sent['sentence'].strip()
-                        print(sentence)
+                        #previous = dia[max(0,sent_idx - 10):min(sent_idx + 1, n]
                         if self.roberta:
                             commonsense = self.roberta_classified_z[self.id[index]][str(sent_idx)]["out"]
                             #print(f"Commonsense: {commonsense}")
@@ -970,6 +978,8 @@ class SamsumDataset_low(Dataset):
                         dialogue += person + " said \"" + sentence + ".\"" + '\n'
                         if sent['speaker']+sentence != commonsense:
                             # print(self.process_media_msg(sentence, person, commonsense))
+                            #dialogue += self.process_media_msg(sentence, person, commonsense, previous_uterances)
+
                             dialogue += self.process_media_msg(sentence, person, commonsense)
                 except KeyError:
                     print("key error")
@@ -981,8 +991,10 @@ class SamsumDataset_low(Dataset):
                 try:
                     dia = self.dialogue_comet_inference[self.id[index]]
                     dialogue=""
+                    #k = 0
                     for _,sent in dia.items():
                         sentence = sent['sentence'].strip()
+                        #previous = dia[max(0,sent_idx - 10):min(sent_idx + 1, len(dia)]
                         person = sentence.split()[0]
                         commonsense = sent[self.relation][0].strip()
 
@@ -990,6 +1002,7 @@ class SamsumDataset_low(Dataset):
 
                         if sentence != commonsense:
                             dialogue += self.process_media_msg(sentence, person, commonsense)
+                    #k+=1
                 except KeyError: # when an error occurred while processing commonsense, just give plain utterance as output
                     print("key error")
                     # print(index)
