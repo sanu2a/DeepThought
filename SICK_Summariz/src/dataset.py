@@ -167,7 +167,7 @@ class SamsumDataset(Dataset):
       print(f"The best relation is: {max(commonsenseDict, key=commonsenseDict.get)}")
       return max(commonsenseDict, key=commonsenseDict.get)
 
-    def process_media_msg(self,sentence, person, commonsense):
+    def process_media_msg(self,sentence, person, commonsense, previous):
         # print(person)
         if ('<file_photo>' in sentence) or ('<photo_file>' in sentence) or ('<file_picture>' in sentence):
             return "<I> " + person + " sent a photo. </I>" + '\n' 
@@ -185,15 +185,19 @@ class SamsumDataset(Dataset):
             if commonsense.strip() != 'none':
                 ## ADD sentiment
                 if self.sentiment == True :
-                #     sent = sentiment_analysis(sentence)[0]["label"]
-                #     # print(sent)
-                #     # print("commensense", commonsense)
                     emotion = emotion_analyzer.predict(sentence).output
+                    if emotion == "others" :
+                        emotion2 = emotion_analyzer.predict(previous).output 
+                        #if emotion2!="others" :
+                            #print("new emotion detected is", emotion2, "to" ,sentence)
+                        # #print("--------------------- New emotion  : ", emotion)
+                        return "<I> " + commonsense.strip() + "," + emotion2 + ". </I>" + '\n'
                     return "<I> " + commonsense.strip() + "," + emotion + ". </I>" + '\n'
                 else : 
                     return "<I> " + commonsense.strip() + ". </I>" + '\n'
             else:
                 return "" 
+
 
 
     def __len__(self):
@@ -235,7 +239,10 @@ class SamsumDataset(Dataset):
                         dialogue_clean +=  person + " said \"" + sentence + ".\"" + '\n' 
                         if sent['speaker']+sentence != commonsense:
                             try :
-                              previous = '\n'.join(dialogue_clean.splitlines()[-10:])
+                                ## Not include the commensense => 10 uteerances
+                                previous = '\n'.join(line for line in dialogue_clean.splitlines()[-10:] if not line.strip().startswith('<I>'))
+                                ## Includes the commensense in the process of the previous utterances 
+                                #previous = '\n'.join(dialogue_clean.splitlines()[-5:])
                             except KeyError:
                               previous = dialogue_clean
                             dialogue += self.process_media_msg(sentence, person, commonsense, previous)
