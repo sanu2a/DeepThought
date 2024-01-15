@@ -20,7 +20,7 @@ from dataset import SamsumDataset_total, DialogsumDataset_total, SamsumDataset_l
 # Set Argument Parser
 parser = argparse.ArgumentParser()
 # Training hyperparameters
-parser.add_argument('--subset_size', type = int, default = 1000)
+parser.add_argument('--subset_size', type = int, default = 100)
 parser.add_argument('--epoch', type=int, default=20)
 parser.add_argument('--train_batch_size', type=int, default=20)
 #parser.add_argument('--display_step',type=int, default=2000)
@@ -127,7 +127,14 @@ vocab_size_list={
     "google/t5-v1_1-large":32128
 }
 dataset_list = [
-    "samsum","dialogsum", "samsum low"
+    "samsum","dialogsum"
+]
+
+relation_list_comet = [
+  'best_relation', 'xNeed', 'HinderedBy', 'xWant',  'xReason', 'xIntent' 
+]
+relation_list_paracomet = [
+  'best_relation', 'xIntent', 'xWant', 'xReact', 'xEffect', 'xAttr'
 ]
 
 
@@ -158,26 +165,15 @@ tokenizer.add_special_tokens(special_tokens_dict)
 
 # Set dataset
 if args.dataset_name=='samsum':
-    total_dataset = SamsumDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,extra_context=True,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation,roberta=args.use_roberta, sentence_transformer=args.use_sentence_transformer,sentiment = args.sentiment)
+    total_dataset = SamsumDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,subset_size = args.subset_size, extra_context=True,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation,roberta=args.use_roberta, sentence_transformer=args.use_sentence_transformer,sentiment = args.sentiment)
     train_dataset = total_dataset.getTrainData()
     eval_dataset = total_dataset.getEvalData()
     test_dataset = total_dataset.getTestData()
 elif args.dataset_name=='dialogsum':
-    total_dataset = DialogsumDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,extra_context=True,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation, sentence_transformer=args.use_sentence_transformer, roberta=args.use_roberta, sentiment = args.sentiment)
+    total_dataset = DialogsumDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,subset_size = args.subset_size, extra_context=True,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation, sentence_transformer=args.use_sentence_transformer, roberta=args.use_roberta, sentiment = args.sentiment)
     train_dataset = total_dataset.getTrainData()
     eval_dataset = total_dataset.getEvalData()
     test_dataset = total_dataset.getTestData()
-elif args.dataset_name=='samsum_low':
-    total_dataset = SamsumDataset_low_total(args.encoder_max_len,args.decoder_max_len,tokenizer,
-                                            args.subset_size, extra_context=False,
-                                            paracomet=args.use_paracomet,relation=args.relation,
-                                            supervision_relation=args.supervision_relation,
-                                            roberta=args.use_roberta, sentiment = args.sentiment)
-    train_dataset = total_dataset.getTrainData()
-    eval_dataset = total_dataset.getEvalData()
-    test_dataset = total_dataset.getTestData()
-
-
 print('######################################################################')
 print('Training Dataset Size is : ')
 print(len(train_dataset))
@@ -291,7 +287,7 @@ finetune_trainer.train()
 # Save final weights
 finetune_trainer.save_model(args.best_finetune_weight_path)
 
-
+'''
 # Run Evaluation on Test Data
 results = finetune_trainer.predict(
     test_dataset=test_dataset,
@@ -303,7 +299,7 @@ print('######################################################################')
 print("Final Rouge Results are : ",metrics)
 print('######################################################################')
 
-'''
+
 # Write evaluation predictions on txt file
 decoded_preds = tokenizer.batch_decode(predictions, skip_special_tokens=True)
     # Replace -100 in the labels as we can't decode them.
@@ -321,5 +317,6 @@ with open(args.test_output_file_name,"w") as f:
     for i in decoded_preds:
         f.write(i.replace("\n","")+"\n")
 '''
+
 # END WANDB log
 wandb.finish()
