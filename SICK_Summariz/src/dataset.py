@@ -438,7 +438,29 @@ def custom_load_dataset(type,split):
             print("non-existing")
             os.exit()
         return data
+    elif type == "tweetsumm":
+        dialogs_dir = f"../data/Tweetsumm_Data/{split}_dialogs.json"
+        summaries_dir = f"../data/Tweetsumm_Data/{split}_summaries.json"
+        data = {'dialogue': [],'summary':[],'id':[]}
+        with open(dialogs_dir, 'r') as json_file:
+            all_dialogs = json.load(json_file)
+            for key in all_dialogs.keys():
+                dialog = ''
+                data['id'].append(key[len(split)+1:])
+                for sent in all_dialogs[key]:
+                    sentence = sent['sentence'].replace('\n','')
+                    author = sent['author_id']
+                    dialog += f"#{author}#: {sentence}\n"
+                data['dialogue'].append(dialog)
 
+        with open(summaries_dir, 'r') as json_file:
+            all_summaries = json.load(json_file)
+            for key in all_summaries.keys():
+                summ = ''
+                for sent in all_summaries[key]:
+                    summ += sent
+                data['summary'].append(summ)
+        return data
 
 
 class DialogsumDataset(Dataset):
@@ -858,10 +880,371 @@ class MediasumDataset_total:
     pass
 
 class TweetsummDataset(Dataset):
-    pass
+    def __init__(self, encoder_max_len, decoder_max_len, split_type, tokenizer, subset_size, extra_context=False, extra_supervision=False, paracomet=False, relation="xReason", supervision_relation="isAfter", roberta=False, sentence_transformer=False, sentiment = False):
+        self.encoder_max_len = encoder_max_len
+        self.decoder_max_len = decoder_max_len
+        self.split_type = split_type
+        self.tokenizer = tokenizer
+        self.subset_size = subset_size
+        self.sentiment = sentiment
+        self.extra_context=extra_context
+        self.extra_supervision=extra_supervision
+        
+        self.relation = relation
+        self.paracomet= paracomet
+        
+        self.roberta=roberta
+        self.sentence_transformer = sentence_transformer
+
+        self.supervision_relation = supervision_relation
+        if not self.sentence_transformer:
+            print(self.relation)
+
+        else:
+            if self.paracomet:
+                print("PARACOMET sentence-transformer")
+            else:
+                print("COMET sentence-transformer")
+
+        ##################################################
+
+        self.data = custom_load_dataset('tweetsumm', split=split_type)
+        #print(len(self.data['dialogue']), len(self.data['id']), len(self.data['summary'])) All the same
+        if self.subset_size != 100 and (split_type == 'train' or split_type == 'validation'):
+          selected_indices = random.sample(range(len(self.data['dialogue'])), int((self.subset_size)/100 * len(self.data['dialogue'])))
+          #print(selected_indices, len(selected_indices))
+          #self.data = dict(random.sample(self.data.items(), int((self.subset_size)/100 * len(self.data))))
+          #subset_indices = random.sample(range(len(self.data)), int((self.subset_size)/100 * int(len(self.data))))
+          #self.data = self.data.select(subset_indices)
+          #print(self.data)
+          self.dialogue = [self.data["dialogue"][i]  for i in selected_indices]
+          self.summary = [self.data["summary"][i]  for i in selected_indices]
+          self.id = [self.data["id"][i]  for i in selected_indices]
+        else:
+          self.dialogue = self.data['dialogue']
+          self.summary = self.data['summary']
+          self.id = self.data['id']
+        
+        
+        self.nlp = spacy.load('en_core_web_sm')
+        
+        if self.extra_context==True:
+            if self.paracomet==False:
+                ###########################
+                # CODE FOR COMET 
+                ###########################
+                
+                with open(f"../data/COMET_data/comet/dialogue/tweetsumm/comet_{self.split_type}.json") as f:
+                    self.dialogue_comet_inference = json.load(f)
+
+                if self.roberta:
+                    print("ROBERTA not available for tweetsumm")
+
+                if self.sentence_transformer:
+                    print("Sentence Transformer not available for tweetsumm")
+                
+            else:
+                ###########################
+                # CODE FOR PARACOMET
+                ###########################
+                print("PARACOMET not available for tweetsumm")
+
+               
+        
+        if self.extra_supervision==True:
+            if self.split_type=='train':
+                if self.paracomet==False:
+                    ######################
+                    # CODE FOR COMET
+                    ######################
+                    with open(f"../data/COMET_data/comet/summary/tweetsumm/comet_train.json") as f:
+                        self.summary_comet_inference = json.load(f)
+                    
+                    if self.roberta:
+                        print("ROBERTA not available for tweetsumm")
+
+                    if sentence_transformer:
+                        print("Sentence Transformer not available for tweetsumm")
+
+                else:
+                    ########################
+                    # CODE FOR PARACOMET
+                    ########################
+                    print("PARACOMET not available for tweetsumm")
+
+        self.data_len = len(self.id)
+
+    def __len__(self):
+        return self.data_len
+
+    def __getitem__(self, index):
+        if self.extra_context==False:
+            #(1, sequence_length)
+            encoded_dialogue = self.tokenizer(self.dialogue[index], 
+                                            padding='max_length', 
+                                            truncation=True, 
+                                            max_length=self.encoder_max_len, 
+                                            return_tensors='pt')
+        else:
+            if self.split_type == "validation":
+                dialog_id = f"dev_{self.id[index]}"
+
+            else:
+                dialog_id = f"{self.split_type}_{self.id[index]}"
+            if self.sentence_transformer:
+                cur_dialog_data = self.sentence_transformer_classified_z[dialog_id]
+                dialogue = ""
+                for sentence_idx in range(len(cur_dialog_data.keys())):
+                    sentence = cur_dialog_data[str(sentence_idx)]["sentence"]
+                    relation = cur_dialog_data[str(sentence_idx)]["relation"]
+                    commonsense = cur_dialog_data[str(sentence_idx)]["out"]
+
+                    dialogue += sentence + "\n"
+                    dialogue+= '<I> '
+                    dialogue+= commonsense+'.'
+                    dialogue+= ' </I>'+'\n'
+            
+            elif self.roberta:
+                print("ROBERTA not available for tweetsumm")
+                
+
+            elif self.paracomet==False:
+                #######################
+                # CODE FOR COMET
+                #######################
+                # extra context exist 
+                # z is available
+                splitted_dialogue = self.dialogue[index].replace('\r\n','\n').split('\n')
+                
+                def split_sentences(text, speaker):
+                    doc = self.nlp(text)
+                    sents = [speaker.replace(":","") + ' said "' + sent.text + '"' for sent in doc.sents]
+                    return sents
+                
+                splitted_sentences = []
+                for idx, utterance in enumerate(splitted_dialogue):
+                    speaker_match = re.search(".*?:", utterance)
+                    if speaker_match:
+                        speaker = speaker_match.group()
+                    else:
+                      continue
+                    
+
+                    utterance = utterance.replace(speaker,"").strip()
+                    utterance = split_sentences(utterance,speaker)
+                    splitted_sentences.extend(utterance)
+
+                dialogue= ""
+                idx=0
+                for utterance in splitted_sentences:
+                    dialogue+= utterance+'\n'
+                    if self.split_type=='train':
+                        try:
+                            while True:
+                                if self.dialogue_comet_inference['train_'+self.id[index]][idx]['sentence'] not in ("#Person1#:","#Person2#:"):
+                                    commonsense = self.dialogue_comet_inference['train_'+self.id[index]][idx][self.relation][0].strip()
+                                    # commonsense = commonsense.replace("PersonX","Person").replace("PersonY","Person")
+                                    break
+                                else:
+                                    idx+=1
+                                continue
+                        except:
+                            continue
+                    elif self.split_type=='validation':
+                        try:
+                            while True:
+                                if self.dialogue_comet_inference['dev_'+self.id[index]][idx]['sentence'] not in ("#Person1#:","#Person2#:"):
+                                    commonsense = self.dialogue_comet_inference['dev_'+self.id[index]][idx][self.relation][0].strip()
+                                    commonsense = commonsense.replace("PersonX","Person").replace("PersonY","Person")
+                                    break
+                                else:
+                                    idx+=1
+                                continue
+                        except:
+                            continue
+                    else: # self.split_type=='test':
+                        try:
+                            while True:
+                                if self.dialogue_comet_inference['test_'+self.id[index]][idx]['sentence'] not in ("#Person1#:","#Person2#:"):
+                                    commonsense = self.dialogue_comet_inference['test_'+self.id[index]][idx][self.relation][0].strip()
+                                    # commonsense = commonsense.replace("PersonX","Person").replace("PersonY","Person")
+                                    break
+                                else:
+                                    idx+=1
+                                continue
+
+                        except:
+                            continue
+                    if 'none' not in commonsense:
+                        dialogue+= '<I> '
+                        dialogue+= commonsense+'.'
+                        dialogue+= ' </I>'+'\n'
+                    idx+=1
+            ############################### PARACOMET START #######################################################
+            else:
+                if self.split_type=='validation':
+                    dia = self.dialogue_comet_inference['dev'+'_'+self.id[index]]
+                else:
+                    dia = self.dialogue_comet_inference[self.split_type+'_'+self.id[index]]
+                dialogue=""
+                for _,sent in dia.items():
+                    sentence = sent['sentence'].strip()
+                    person = sentence.split()[0]
+                    commonsense = sent[self.relation][0].strip()
+
+                    dialogue += sentence +'\n'
+
+                    if sentence != commonsense:
+                        if ('<file_photo>' in sentence) or ('<photo_file>' in sentence) or ('<file_picture>' in sentence):
+                            dialogue += "<I> " + person + " sent a photo. </I>" + '\n' 
+                        elif ('<video>' in sentence) or ('<file_video>' in sentence):
+                            dialogue += "<I> " + person + " sent a video. </I>" + '\n'
+                        elif '<file_gif>' in sentence:
+                            dialogue += "<I> " + person + " sent a file. </I>" + '\n'
+                        elif ('<file_other>' in sentence) or ('<file_others>' in sentence):
+                            dialogue += "<I> " + person + " sent a file. </I>" + '\n'
+                        elif ('<link>' in sentence) or ('<file_link>' in sentence):
+                            dialogue += "<I> " + person + " sent a link. </I>" + '\n'
+                        elif '<location>' in sentence:
+                            dialogue += "<I> " + person + " sent a location. </I>" + '\n'
+                        else:
+                            if commonsense.strip() != 'none':
+                                ## ADD sentiment
+                                if self.sentiment == True :
+                                    #sent = sentiment_analysis(sentence)[0]["label"]
+                                    return "<I> " + commonsense.strip() + ". </I>" + '\n'
+                                else : 
+                                    return "<I> " + commonsense.strip() + ". </I>" + '\n'
+                            else:
+                                return "" 
+
+            encoded_dialogue = self.tokenizer(dialogue,
+                                            padding='max_length', 
+                                            truncation=True, 
+                                            max_length=self.encoder_max_len, 
+                                            add_special_tokens=True,
+                                            return_tensors='pt')
+
+        # (1, sequence_length)
+        #with self.tokenizer.as_target_tokenizer():
+        encoded_summary = self.tokenizer(self.summary[index], 
+                                            padding='max_length', 
+                                            truncation=True, 
+                                            max_length=self.decoder_max_len, 
+                                            add_special_tokens=True,
+                                            return_tensors='pt')
+        
+        
+        model_inputs = encoded_dialogue
+        model_inputs['input_ids'] = model_inputs['input_ids'].squeeze(0)
+        model_inputs['attention_mask'] = model_inputs['attention_mask'].squeeze(0)
+        model_inputs['labels'] = encoded_summary['input_ids']
+        def shift_tokens_right(input_ids: torch.Tensor, pad_token_id: int, decoder_start_token_id: int):
+            """
+            Shift input ids one token to the right.
+            """
+            shifted_input_ids = input_ids.new_zeros(input_ids.shape)
+
+            shifted_input_ids[:, 1:] = input_ids[:, :-1].clone()
+            shifted_input_ids[:, 0] = decoder_start_token_id
+
+            if pad_token_id is None:
+                raise ValueError("self.model.config.pad_token_id has to be defined.")
+            # replace possible -100 values in labels by `pad_token_id`
+            shifted_input_ids.masked_fill_(shifted_input_ids == -100, pad_token_id)
+
+            return shifted_input_ids
+
+        #model_inputs['decoder_input_ids'] = shift_tokens_right(model_inputs['labels'].clone(),self.tokenizer.pad_token_id,0).squeeze(0)
+        model_inputs['labels'] = model_inputs['labels'].squeeze(0)
+        #print('#####')
+        #print(model_inputs['decoder_input_ids'])
+        #print()
+        #print(model_inputs['labels'])
+        #print('#####')
+        #model_inputs['decoder_attention_mask'] = encoded_summary['attention_mask'].squeeze(0)
+        
+
+
+        if self.split_type == "test":
+            encoded_summary2 = self.tokenizer(self.summary2[index], 
+                                            padding='max_length', 
+                                            truncation=True, 
+                                            max_length=self.decoder_max_len, 
+                                            return_tensors='pt')
+            model_inputs['labels2'] = encoded_summary2['input_ids'].squeeze(0)
+
+
+        
+            encoded_summary3 = self.tokenizer(self.summary3[index], 
+                                            padding='max_length', 
+                                            truncation=True, 
+                                            max_length=self.decoder_max_len, 
+                                            return_tensors='pt')
+            model_inputs['labels3'] = encoded_summary3['input_ids'].squeeze(0)
+
+        
+
+
+        if self.extra_supervision==True:
+            if self.split_type=='train':
+                if self.sentence_transformer:
+                    cur_summary_commonsense_data = self.sentence_transformer_classified_w[f"train_{self.id[index]}"]
+                    summary_commonsense = ""
+                    for summary_sentence_idx in range(len(cur_summary_commonsense_data.keys())):
+                        commonsense = cur_summary_commonsense_data[str(summary_sentence_idx)]["out"].strip()+" ."
+                        summary_commonsense += commonsense
+
+                    
+                elif self.roberta:
+                    print("ROBERTA not available for tweetsumm")
+
+                elif self.paracomet==False:
+                    summary_commonsense = ""
+                    for summ in self.summary_comet_inference["train_"+self.id[index]]:
+                        commonsense = summ[self.supervision_relation][0].strip() +'. '
+                        commonsense = commonsense.replace('PersonX','Person').replace('PersonY','Person')
+                        summary_commonsense += commonsense
+
+                ####################################### PARACOMET START ###########################################
+                else:
+                    summary_commonsense = ""
+                    if self.split_type=='validation':
+                        for _,summ in self.summary_comet_inference['dev'+'_'+self.id[index]].items():
+                            summary_commonsense += summ[self.supervision_relation][0].strip() +'. '
+                    else:
+                        for _,summ in self.summary_comet_inference[self.split_type+'_'+self.id[index]].items():
+                            summary_commonsense += summ[self.supervision_relation][0].strip() +'. '
+
+                with self.tokenizer.as_target_tokenizer():
+                    encoded_extra_supervision = self.tokenizer(summary_commonsense,
+                                                            padding='max_length',
+                                                            truncation=True,
+                                                            max_length=self.decoder_max_len,
+                                                            return_tensors='pt')
+
+                model_inputs['extra_labels'] = encoded_extra_supervision['input_ids'].squeeze(0)
+                    
+        return model_inputs
+
 
 class TweetsummDataset_total:
-    pass
+    def __init__(self, encoder_max_len, decoder_max_len, tokenizer, subset_size, 
+                 extra_context=False, extra_supervision=False, paracomet=False, 
+                 relation="xReason",roberta=False,supervision_relation='isAfter', 
+                 sentence_transformer=False, sentiment = False):
+        self.train_dataset = TweetsummDataset(encoder_max_len, decoder_max_len, 'train',tokenizer,subset_size, extra_context,extra_supervision,paracomet=paracomet,relation=relation,roberta=roberta,supervision_relation=supervision_relation, sentence_transformer=sentence_transformer,  sentiment = sentiment)
+        self.eval_dataset = TweetsummDataset(encoder_max_len, decoder_max_len, 'validation', tokenizer,subset_size, extra_context,extra_supervision,paracomet=paracomet,relation=relation,roberta=roberta,supervision_relation=supervision_relation, sentence_transformer=sentence_transformer,  sentiment = sentiment)
+        self.test_dataset = TweetsummDataset(encoder_max_len, decoder_max_len, 'test', tokenizer,100, extra_context,extra_supervision,paracomet=paracomet,relation=relation,roberta=roberta,supervision_relation=supervision_relation, sentence_transformer=sentence_transformer,  sentiment = sentiment)
+        print(self.train_dataset.data_len)
+    def getTrainData(self):
+        return self.train_dataset
+    
+    def getEvalData(self):
+        return self.eval_dataset
+
+    def getTestData(self):
+        return self.test_dataset
 
 
 class SamsumDataset_low(Dataset):

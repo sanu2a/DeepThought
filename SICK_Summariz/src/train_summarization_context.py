@@ -15,7 +15,7 @@ from transformers import AutoConfig, AutoModelForSeq2SeqLM
 from transformers import Seq2SeqTrainingArguments, Seq2SeqTrainer
 from datasets import load_metric
 import wandb
-from dataset import SamsumDataset_total, DialogsumDataset_total, SamsumDataset_low_total
+from dataset import SamsumDataset_total, DialogsumDataset_total, SamsumDataset_low_total, TweetsummDataset_total
 
 # Set Argument Parser
 parser = argparse.ArgumentParser()
@@ -127,7 +127,7 @@ vocab_size_list={
     "google/t5-v1_1-large":32128
 }
 dataset_list = [
-    "samsum","dialogsum"
+    "samsum","dialogsum", 'tweetsumm'
 ]
 
 relation_list_comet = [
@@ -174,6 +174,12 @@ elif args.dataset_name=='dialogsum':
     train_dataset = total_dataset.getTrainData()
     eval_dataset = total_dataset.getEvalData()
     test_dataset = total_dataset.getTestData()
+elif args.dataset_name=='tweetsumm':
+    total_dataset = TweetsummDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,subset_size = args.subset_size, extra_context=True,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation, sentence_transformer=args.use_sentence_transformer, roberta=args.use_roberta, sentiment = args.sentiment)
+    train_dataset = total_dataset.getTrainData()
+    eval_dataset = total_dataset.getEvalData()
+    test_dataset = total_dataset.getTestData()
+
 print('######################################################################')
 print('Training Dataset Size is : ')
 print(len(train_dataset))
