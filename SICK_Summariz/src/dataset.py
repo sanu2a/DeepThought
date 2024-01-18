@@ -231,7 +231,7 @@ class SamsumDataset(Dataset):
                         elif self.sentence_transformer:
                             commonsense = self.sentence_transformer_classified_z[self.id[index]][str(sent_idx)]["out"]
                             # print(commonsense)
-                        elif self.relation == 'best_relation':
+                        elif self.relation == '<|best_relation|>':
                             commonsense = self.compute_best_relation(sentence, sent)
                         else:
                             commonsense = sent[self.relation][0].strip()
@@ -270,7 +270,7 @@ class SamsumDataset(Dataset):
                             
                         elif self.sentence_transformer:
                             commonsense = self.sentence_transformer_classified_z[self.id[index]][str(sent_idx)]["out"]
-                        elif self.relation ==  'best_relation':    
+                        elif self.relation ==  '<|best_relation|>':    
                             commonsense = self.compute_best_relation(sentence, sent)
                             print(commonsense)
                         else:
@@ -706,7 +706,7 @@ class DialogsumDataset(Dataset):
                                 #print(self.dialogue_comet_inference['train_'+self.id[index]][idx]['sentence'] not in ("#Person1#:","#Person2#:"))
                                 #print(self.dialogue_comet_inference['train_'+self.id[index]][idx]['sentence'])
                                 if self.dialogue_comet_inference['train_'+self.id[index]][idx]['sentence'] not in ("#Person1#:","#Person2#:"):
-                                  if self.relation == 'best_relation':
+                                  if self.relation == '<|best_relation|>':
                                     commonsense = self.compute_best_relation(self.dialogue_comet_inference['train_'+self.id[index]][idx])
                                     print(commonsense)
                                     
@@ -723,7 +723,7 @@ class DialogsumDataset(Dataset):
                         try:
                             while True:
                                 if self.dialogue_comet_inference['dev_'+self.id[index]][idx]['sentence'] not in ("#Person1#:","#Person2#:"):
-                                    if self.relation == 'best_relation':
+                                    if self.relation == '<|best_relation|>':
                                       commonsense = self.compute_best_relation(self.dialogue_comet_inference['dev_'+self.id[index]][idx])
                                       
                                     else:
@@ -739,7 +739,7 @@ class DialogsumDataset(Dataset):
                         try:
                             while True:
                                 if self.dialogue_comet_inference['test_'+self.id[index]][idx]['sentence'] not in ("#Person1#:","#Person2#:"):
-                                  if self.relation == 'best_relation':
+                                  if self.relation == '<|best_relation|>':
                                     commonsense = self.compute_best_relation(self.dialogue_comet_inference['test_'+self.id[index]][idx])
                                   else:
                                     commonsense = self.dialogue_comet_inference['test_'+self.id[index]][idx][self.relation][0].strip()
