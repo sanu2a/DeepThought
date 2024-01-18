@@ -713,7 +713,7 @@ class DialogsumDataset(Dataset):
                     person = sentence.split()[0]
                     commonsense = sent[self.relation][0].strip()
 
-                    dialogue += sentence +'\n'
+                    dialogue += sentence
 
                     if sentence != commonsense:
                         if ('<file_photo>' in sentence) or ('<photo_file>' in sentence) or ('<file_picture>' in sentence):
@@ -732,12 +732,12 @@ class DialogsumDataset(Dataset):
                             if commonsense.strip() != 'none':
                                 ## ADD sentiment
                                 if self.sentiment == True :
-                                    #sent = sentiment_analysis(sentence)[0]["label"]
-                                    return "<I> " + commonsense.strip() + ". </I>" + '\n'
+                                    sent = sentiment_analysis(sentence)[0]["label"]
+                                    dialogue += "<I> " + commonsense.strip() + ". </I>" + "<I> " + sent.strip() + ". </I>" +"\n"
                                 else : 
-                                    return "<I> " + commonsense.strip() + ". </I>" + '\n'
+                                    dialogue += "<I> " + commonsense.strip() + ". </I>" + '\n'
                             else:
-                                return "" 
+                                pass
 
             encoded_dialogue = self.tokenizer(dialogue,
                                             padding='max_length', 
