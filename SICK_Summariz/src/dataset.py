@@ -56,7 +56,7 @@ class SamsumDataset(Dataset):
         #dict(random.sample(d.items(), n))
 
         self.data = load_dataset('samsum',split=split_type)
-        if self.subset_size != 100:
+        if self.subset_size < 100 and (split_type == 'train' or split_type == 'validation'):
           subset_indices = random.sample(range(len(self.data)), int((self.subset_size)/100 * int(len(self.data))))
           self.data = self.data.select(subset_indices)
         self.dialogue = self.data['dialogue']
@@ -499,7 +499,7 @@ class DialogsumDataset(Dataset):
 
         self.data = custom_load_dataset('dialogsum', split=split_type)
         #print(len(self.data['dialogue']), len(self.data['id']), len(self.data['summary'])) All the same
-        if self.subset_size != 100 and (split_type == 'train' or split_type == 'validation'):
+        if self.subset_size < 100 and (split_type == 'train' or split_type == 'validation'):
           selected_indices = random.sample(range(len(self.data['dialogue'])), int((self.subset_size)/100 * len(self.data['dialogue'])))
           #print(selected_indices, len(selected_indices))
           #self.data = dict(random.sample(self.data.items(), int((self.subset_size)/100 * len(self.data))))
