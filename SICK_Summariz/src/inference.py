@@ -7,6 +7,7 @@ import os
 
 import sys
 sys.path.append('../')
+sys.path.append('../utils/')
 import nltk
 nltk.download('punkt')
 import numpy as np
@@ -20,7 +21,7 @@ from datasets import load_metric
 from data.dataset import SamsumDataset_total, DialogsumDataset_total, MediasumDataset_total, TweetsummDataset_total
 from models.bart import BartForConditionalGeneration_DualDecoder, BartForConditionalGeneration_DualHead
 from tqdm import tqdm
-from utils.bleurt import score
+from bleurt import score
 # Set Argument Parser
 parser = argparse.ArgumentParser()
 # Training hyperparameters
@@ -34,7 +35,7 @@ parser.add_argument('--decoder_max_len', type=int, default=100)
 parser.add_argument('--use_paracomet',type=bool,default=False)
 parser.add_argument('--use_roberta',type=bool,default=False)
 parser.add_argument('--use_sentence_transformer',type=bool,default=False)
-parser.add_argument('--relation',type=str,default="xReason")
+parser.add_argument('--relation',type=str,default="xIntent")
 parser.add_argument('--supervision_relation',type=str,default='isAfter')
 parser.add_argument('--num_beams', type=int, default=20)
 args = parser.parse_args()
@@ -85,7 +86,7 @@ extra_supervision = False
 extra_context=False    
 # Samsum
 if args.train_configuration == "base":
-    finetune_model = BartForConditionalGeneration.from_pretrained("./new_weights_sickplus_best/")
+    finetune_model = BartForConditionalGeneration.from_pretrained(args.model_checkpoint, local_files_only=True)
 elif args.train_configuration == "context":
     finetune_model = BartForConditionalGeneration.from_pretrained(args.model_checkpoint)
     extra_context = True
@@ -112,9 +113,9 @@ finetune_model.eval()
 
 
 # Set metric
-metric = load_metric("../utils/rouge.py")
-metric2 = load_metric("../utils/rouge.py")
-metric3 = load_metric("../utils/rouge.py")
+metric = load_metric("../utils/rouge.py", trust_remote_code=True)
+metric2 = load_metric("../utils/rouge.py", trust_remote_code=True)
+metric3 = load_metric("../utils/rouge.py", trust_remote_code=True)
 
 #Bluert
 bluert_checkpoint = "../utils/bleurt/bleurt_checkpoint/"
@@ -132,10 +133,10 @@ tokenizer = AutoTokenizer.from_pretrained("lidiya/bart-base-samsum")
 
 # Set dataset
 if args.dataset_name=='samsum':
-    total_dataset = SamsumDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,subset_size = args.subset_size, extra_context=True,extra_supervision=True,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation,roberta=args.use_roberta, sentence_transformer=args.use_sentence_transformer)
+    total_dataset = SamsumDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,extra_context=True,extra_supervision=True,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation,roberta=args.use_roberta, subset_size = args.subset_size,sentence_transformer=args.use_sentence_transformer)
     test_dataset = total_dataset.getTestData()
 elif args.dataset_name=='dialogsum':
-    total_dataset = DialogsumDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,subset_size = args.subset_size, extra_context=True,extra_supervision=True,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation, sentence_transformer=args.use_sentence_transformer, roberta=args.use_roberta)
+    total_dataset = DialogsumDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,extra_context=True,extra_supervision=True,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation, sentence_transformer=args.use_sentence_transformer, roberta=args.use_roberta)
     test_dataset = total_dataset.getTestData()
 print('######################################################################')
 print('Test Dataset Size is : ')
@@ -155,6 +156,8 @@ total_decoded_labels = []
 
 with torch.no_grad():
     for idx, data in enumerate(tqdm(test_dataloader),0):
+        if idx > int(len(test_dataset)*args.subset_size/100):
+           break
         # if idx % 40 ==0:
         #     print(total_rouge1_scores)
         #     print(idx)
@@ -230,9 +233,9 @@ total_decoded_preds = [item for sublist in total_decoded_preds for item in subli
 scores = scorer.score(references=total_decoded_labels, candidates=total_decoded_preds)
 scores = np.array(scores)
 #assert isinstance(scores, list) and len(scores) == 1
-print("--------BLUERTSCORE--------")
+print("--------BLEURT SCORE--------")
 print(scores.mean())
-print("----------------")
+print("----------------------------")
 
 if args.dataset_name == "dialogsum":
     result2 = metric2.compute(use_stemmer=True)
@@ -271,6 +274,8 @@ if args.dataset_name == "dialogsum":
 with open(args.test_output_file_name,"a") as f: 
     f.write("num_beams: ")
     f.write(NB+"\n")
+    f.write("Bleurt: ")
+    f.write(str(scores.mean())+"\n")
     f.write(" rouge1: ")
     f.write(str(result['rouge1'])+"\n")
     f.write(" rouge2: ")
@@ -310,6 +315,7 @@ with open(args.test_output_file_name,"a") as f:
         f.write(" bert-score: ")
         f.write(str(bertscore_result3)+"\n")
         f.write('\n')
-    for i in total_decoded_preds:
+"""  for i in total_decoded_preds:
         for sent in i:
             f.write(sent.replace("\n"," ")+"\n")
+"""
