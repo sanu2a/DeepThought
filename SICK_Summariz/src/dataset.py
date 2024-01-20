@@ -1032,6 +1032,46 @@ class TweetsummDataset(Dataset):
                     print("PARACOMET not available for tweetsumm")
 
         self.data_len = len(self.id)
+    
+    def compute_best_relation(self, d: dict):
+      #print(d)
+      #print(f"Sentence: {sentence}")
+      sentence = d['sentence']
+      encoded_sentence = self.tokenizer(sentence,
+                                            padding='max_length', 
+                                            truncation=True, 
+                                            max_length=self.encoder_max_len, 
+                                            return_tensors='pt')
+      commonsenseDict = {}
+      if self.paracomet:
+        commonsenseDict['<|xReact|>'] = d['<|xReact|>'][0]
+        commonsenseDict['<|xWant|>'] = d['<|xWant|>'][0]
+        commonsenseDict['<|xIntent|>'] = d['<|xIntent|>'][0]
+        commonsenseDict['<|xAttr|>'] = d['<|xAttr|>'][0]
+        commonsenseDict['<|xEffect|>'] = d['<|xEffect|>'][0]
+      else:
+        commonsenseDict['HinderedBy'] = d['HinderedBy'][0]
+        commonsenseDict['xWant'] = d['xWant'][0]
+        commonsenseDict['xIntent'] = d['xIntent'][0]
+        commonsenseDict['xNeed'] = d['xNeed'][0]
+        commonsenseDict['xReason'] = d['xReason'][0]
+
+      #print(commonsenseDict)
+        
+      for k, v in commonsenseDict.items():
+        encoded = self.tokenizer(v, padding='max_length', 
+                                              truncation=True, 
+                                              max_length=self.encoder_max_len, 
+                                              return_tensors='pt')
+        similarity = cosine_similarity(encoded_sentence['input_ids'], encoded['input_ids'])
+        commonsenseDict[k] = similarity[0][0]
+      
+      #print(commonsenseDict)
+      #print(f"The best relation is: {max(commonsenseDict, key=commonsenseDict.get)}")
+      best_relation = max(commonsenseDict, key=commonsenseDict.get)
+      #print(best_relation, d[best_relation], type(d[best_relation]))
+      return d[best_relation][0]
+
 
     def __len__(self):
         return self.data_len
@@ -1051,17 +1091,7 @@ class TweetsummDataset(Dataset):
             else:
                 dialog_id = f"{self.split_type}_{self.id[index]}"
             if self.sentence_transformer:
-                cur_dialog_data = self.sentence_transformer_classified_z[dialog_id]
-                dialogue = ""
-                for sentence_idx in range(len(cur_dialog_data.keys())):
-                    sentence = cur_dialog_data[str(sentence_idx)]["sentence"]
-                    relation = cur_dialog_data[str(sentence_idx)]["relation"]
-                    commonsense = cur_dialog_data[str(sentence_idx)]["out"]
-
-                    dialogue += sentence + "\n"
-                    dialogue+= '<I> '
-                    dialogue+= commonsense+'.'
-                    dialogue+= ' </I>'+'\n'
+                print("Sentence Transformer not available for tweetsumm")
             
             elif self.roberta:
                 print("ROBERTA not available for tweetsumm")
@@ -1101,8 +1131,13 @@ class TweetsummDataset(Dataset):
                         try:
                             while True:
                                 if self.dialogue_comet_inference['train_'+self.id[index]][idx]['sentence'] not in ("#Person1#:","#Person2#:"):
-                                    commonsense = self.dialogue_comet_inference['train_'+self.id[index]][idx][self.relation][0].strip()
-                                    # commonsense = commonsense.replace("PersonX","Person").replace("PersonY","Person")
+                                    if self.relation == '<|best_relation|>':
+                                        commonsense = self.compute_best_relation(self.dialogue_comet_inference['train_'+self.id[index]][idx])
+                                        #print(commonsense)
+                                    
+                                    else:
+                                        commonsense = self.dialogue_comet_inference['train_'+self.id[index]][idx][self.relation][0].strip()
+                                        # commonsense = commonsense.replace("PersonX","Person").replace("PersonY","Person")
                                     break
                                 else:
                                     idx+=1
@@ -1113,8 +1148,12 @@ class TweetsummDataset(Dataset):
                         try:
                             while True:
                                 if self.dialogue_comet_inference['dev_'+self.id[index]][idx]['sentence'] not in ("#Person1#:","#Person2#:"):
-                                    commonsense = self.dialogue_comet_inference['dev_'+self.id[index]][idx][self.relation][0].strip()
-                                    commonsense = commonsense.replace("PersonX","Person").replace("PersonY","Person")
+                                    if self.relation == '<|best_relation|>':
+                                      commonsense = self.compute_best_relation(self.dialogue_comet_inference['dev_'+self.id[index]][idx])
+                                      
+                                    else:
+                                        commonsense = self.dialogue_comet_inference['dev_'+self.id[index]][idx][self.relation][0].strip()
+                                        commonsense = commonsense.replace("PersonX","Person").replace("PersonY","Person")
                                     break
                                 else:
                                     idx+=1
@@ -1125,9 +1164,12 @@ class TweetsummDataset(Dataset):
                         try:
                             while True:
                                 if self.dialogue_comet_inference['test_'+self.id[index]][idx]['sentence'] not in ("#Person1#:","#Person2#:"):
+                                  if self.relation == '<|best_relation|>':
+                                    commonsense = self.compute_best_relation(self.dialogue_comet_inference['test_'+self.id[index]][idx])
+                                  else:
                                     commonsense = self.dialogue_comet_inference['test_'+self.id[index]][idx][self.relation][0].strip()
                                     # commonsense = commonsense.replace("PersonX","Person").replace("PersonY","Person")
-                                    break
+                                  break
                                 else:
                                     idx+=1
                                 continue
@@ -1141,41 +1183,7 @@ class TweetsummDataset(Dataset):
                     idx+=1
             ############################### PARACOMET START #######################################################
             else:
-                if self.split_type=='validation':
-                    dia = self.dialogue_comet_inference['dev'+'_'+self.id[index]]
-                else:
-                    dia = self.dialogue_comet_inference[self.split_type+'_'+self.id[index]]
-                dialogue=""
-                for _,sent in dia.items():
-                    sentence = sent['sentence'].strip()
-                    person = sentence.split()[0]
-                    commonsense = sent[self.relation][0].strip()
-
-                    dialogue += sentence +'\n'
-
-                    if sentence != commonsense:
-                        if ('<file_photo>' in sentence) or ('<photo_file>' in sentence) or ('<file_picture>' in sentence):
-                            dialogue += "<I> " + person + " sent a photo. </I>" + '\n' 
-                        elif ('<video>' in sentence) or ('<file_video>' in sentence):
-                            dialogue += "<I> " + person + " sent a video. </I>" + '\n'
-                        elif '<file_gif>' in sentence:
-                            dialogue += "<I> " + person + " sent a file. </I>" + '\n'
-                        elif ('<file_other>' in sentence) or ('<file_others>' in sentence):
-                            dialogue += "<I> " + person + " sent a file. </I>" + '\n'
-                        elif ('<link>' in sentence) or ('<file_link>' in sentence):
-                            dialogue += "<I> " + person + " sent a link. </I>" + '\n'
-                        elif '<location>' in sentence:
-                            dialogue += "<I> " + person + " sent a location. </I>" + '\n'
-                        else:
-                            if commonsense.strip() != 'none':
-                                ## ADD sentiment
-                                if self.sentiment == True :
-                                    #sent = sentiment_analysis(sentence)[0]["label"]
-                                    return "<I> " + commonsense.strip() + ". </I>" + '\n'
-                                else : 
-                                    return "<I> " + commonsense.strip() + ". </I>" + '\n'
-                            else:
-                                return "" 
+                print("PARACOMET not available for tweetsumm")
 
             encoded_dialogue = self.tokenizer(dialogue,
                                             padding='max_length', 
@@ -1225,35 +1233,10 @@ class TweetsummDataset(Dataset):
         
 
 
-        if self.split_type == "test":
-            encoded_summary2 = self.tokenizer(self.summary2[index], 
-                                            padding='max_length', 
-                                            truncation=True, 
-                                            max_length=self.decoder_max_len, 
-                                            return_tensors='pt')
-            model_inputs['labels2'] = encoded_summary2['input_ids'].squeeze(0)
-
-
-        
-            encoded_summary3 = self.tokenizer(self.summary3[index], 
-                                            padding='max_length', 
-                                            truncation=True, 
-                                            max_length=self.decoder_max_len, 
-                                            return_tensors='pt')
-            model_inputs['labels3'] = encoded_summary3['input_ids'].squeeze(0)
-
-        
-
-
         if self.extra_supervision==True:
             if self.split_type=='train':
                 if self.sentence_transformer:
-                    cur_summary_commonsense_data = self.sentence_transformer_classified_w[f"train_{self.id[index]}"]
-                    summary_commonsense = ""
-                    for summary_sentence_idx in range(len(cur_summary_commonsense_data.keys())):
-                        commonsense = cur_summary_commonsense_data[str(summary_sentence_idx)]["out"].strip()+" ."
-                        summary_commonsense += commonsense
-
+                    print
                     
                 elif self.roberta:
                     print("ROBERTA not available for tweetsumm")
@@ -1267,13 +1250,7 @@ class TweetsummDataset(Dataset):
 
                 ####################################### PARACOMET START ###########################################
                 else:
-                    summary_commonsense = ""
-                    if self.split_type=='validation':
-                        for _,summ in self.summary_comet_inference['dev'+'_'+self.id[index]].items():
-                            summary_commonsense += summ[self.supervision_relation][0].strip() +'. '
-                    else:
-                        for _,summ in self.summary_comet_inference[self.split_type+'_'+self.id[index]].items():
-                            summary_commonsense += summ[self.supervision_relation][0].strip() +'. '
+                    print("PARACOMET not available for tweetsumm")
 
                 with self.tokenizer.as_target_tokenizer():
                     encoded_extra_supervision = self.tokenizer(summary_commonsense,
