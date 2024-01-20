@@ -765,12 +765,12 @@ class DialogsumDataset(Dataset):
                     dia = self.dialogue_comet_inference[self.split_type+'_'+self.id[index]]
                 dialogue=""
                 for _,sent in dia.items():
-                    print(f"Sent: {sent}")
+                    #print(f"Sent: {sent}")
                     sentence = sent['sentence'].strip()
                     person = sentence.split()[0]
                     if self.relation == '<|best_relation|>':
                       commonsense = self.compute_best_relation(sent)
-                      print(commonsense)
+                      #print(commonsense)
                     else:
                       commonsense = sent[self.relation][0].strip()
 
@@ -797,7 +797,7 @@ class DialogsumDataset(Dataset):
                                     dialogue += "<I> " + commonsense.strip() + ". </I>" + "<I> " + sent.strip() + ". </I>" +"\n"
                                 else : 
                                     dialogue += "<I> " + commonsense.strip() + ". </I>" + '\n'
-                                    print(dialogue)
+                                 #   print(dialogue)
             encoded_dialogue = self.tokenizer(dialogue,
                                             padding='max_length', 
                                             truncation=True, 
