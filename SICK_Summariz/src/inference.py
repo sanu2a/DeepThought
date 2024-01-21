@@ -18,7 +18,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 from transformers import BartForConditionalGeneration, AutoTokenizer
 from datasets import load_metric
-from data.dataset import SamsumDataset_total, DialogsumDataset_total, MediasumDataset_total, TweetsummDataset_total
+from dataset import SamsumDataset_total, DialogsumDataset_total, MediasumDataset_total, TweetsummDataset_total
 from models.bart import BartForConditionalGeneration_DualDecoder, BartForConditionalGeneration_DualHead
 from tqdm import tqdm
 from bleurt import score
@@ -117,9 +117,9 @@ metric = load_metric("../utils/rouge.py", trust_remote_code=True)
 metric2 = load_metric("../utils/rouge.py", trust_remote_code=True)
 metric3 = load_metric("../utils/rouge.py", trust_remote_code=True)
 
-#Bluert
-bluert_checkpoint = "../utils/bleurt/bleurt_checkpoint/"
-scorer = score.BleurtScorer(bluert_checkpoint)
+#bleurt
+bleurt_checkpoint = "../utils/bleurt/bleurt_checkpoint/"
+scorer = score.BleurtScorer(bleurt_checkpoint)
 
 bertscore_metric = load_metric("bertscore",lang='en',model_type='bert-base-uncased')
 if args.dataset_name=='dialogsum':
@@ -138,6 +138,10 @@ if args.dataset_name=='samsum':
 elif args.dataset_name=='dialogsum':
     total_dataset = DialogsumDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,subset_size = args.subset_size, extra_context=True,extra_supervision=True,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation, sentence_transformer=args.use_sentence_transformer, roberta=args.use_roberta)
     test_dataset = total_dataset.getTestData()
+elif args.dataset_name=='tweetsumm':
+    total_dataset = TweetsummDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,subset_size = args.subset_size, extra_context=True,extra_supervision=True,paracomet=False,relation=args.relation,supervision_relation=args.supervision_relation, sentence_transformer=args.use_sentence_transformer, roberta=args.use_roberta)
+    test_dataset = total_dataset.getTestData()
+    
 print('######################################################################')
 print('Test Dataset Size is : ')
 print(len(test_dataset))
