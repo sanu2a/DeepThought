@@ -133,7 +133,7 @@ tokenizer = AutoTokenizer.from_pretrained("lidiya/bart-base-samsum")
 
 # Set dataset
 if args.dataset_name=='samsum':
-    total_dataset = SamsumDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,subset_size = args.subset_size, extra_context=True,extra_supervision=True,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation,roberta=args.use_roberta, subset_size = args.subset_size,sentence_transformer=args.use_sentence_transformer)
+    total_dataset = SamsumDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,subset_size = args.subset_size, extra_context=True,extra_supervision=True,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation,roberta=args.use_roberta, sentence_transformer=args.use_sentence_transformer)
     test_dataset = total_dataset.getTestData()
 elif args.dataset_name=='dialogsum':
     total_dataset = DialogsumDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,subset_size = args.subset_size, extra_context=True,extra_supervision=True,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation, sentence_transformer=args.use_sentence_transformer, roberta=args.use_roberta)
