@@ -15,7 +15,7 @@ from transformers import AutoConfig, AutoModelForSeq2SeqLM
 from transformers import Seq2SeqTrainingArguments, Seq2SeqTrainer
 from datasets import load_metric
 import wandb
-from data.dataset import SamsumDataset_total, DialogsumDataset_total
+from dataset import SamsumDataset_total, DialogsumDataset_total, TweetsummDataset_total
 from models.bart import BartForConditionalGeneration_DualDecoder
 from src.trainer import DualDecoderTrainer
 
@@ -23,13 +23,15 @@ from src.trainer import DualDecoderTrainer
 # Set Argument Parser
 parser = argparse.ArgumentParser()
 # Training hyperparameters
+parser.add_argument('--subset_size', type = int, default = 100)
+parser.add_argument('--sentiment', type = bool, default = False)
 parser.add_argument('--epoch', type=int, default=20)
 parser.add_argument('--train_batch_size', type=int, default=16)
 #parser.add_argument('--display_step',type=int, default=14000)
 parser.add_argument('--val_batch_size',type=int, default=4)
 parser.add_argument('--test_batch_size',type=int,default=1)
 # Model hyperparameters
-parser.add_argument('--model_name',type=str, default='facebook/bart-base-xsum')
+parser.add_argument('--model_name',type=str, default='facebook/bart-large')
 # Optimizer hyperparameters
 parser.add_argument('--init_lr',type=float, default=3e-6)
 parser.add_argument('--warm_up',type=int, default=600)
@@ -137,13 +139,19 @@ tokenizer.add_special_tokens(special_tokens_dict)
 
 
 # Set dataset
+
 if args.dataset_name=='samsum':
-    total_dataset = SamsumDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,extra_context=True,extra_supervision=True,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation,roberta=args.use_roberta, sentence_transformer=args.use_sentence_transformer)
+    total_dataset = SamsumDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,subset_size = args.subset_size, extra_context=True, extra_supervision = True, paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation,roberta=args.use_roberta, sentence_transformer=args.use_sentence_transformer,sentiment = args.sentiment)
     train_dataset = total_dataset.getTrainData()
     eval_dataset = total_dataset.getEvalData()
     test_dataset = total_dataset.getTestData()
 elif args.dataset_name=='dialogsum':
-    total_dataset = DialogsumDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,extra_context=True,extra_supervision=True,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation, sentence_transformer=args.use_sentence_transformer, roberta=args.use_roberta)
+    total_dataset = DialogsumDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,subset_size = args.subset_size, extra_context=True, extra_supervision = True, paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation, sentence_transformer=args.use_sentence_transformer, roberta=args.use_roberta, sentiment = args.sentiment)
+    train_dataset = total_dataset.getTrainData()
+    eval_dataset = total_dataset.getEvalData()
+    test_dataset = total_dataset.getTestData()
+elif args.dataset_name=='tweetsumm':
+    total_dataset = TweetsummDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,subset_size = args.subset_size, extra_context=True, extra_supervision = True, paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation, sentence_transformer=args.use_sentence_transformer, roberta=args.use_roberta, sentiment = args.sentiment)
     train_dataset = total_dataset.getTrainData()
     eval_dataset = total_dataset.getEvalData()
     test_dataset = total_dataset.getTestData()
