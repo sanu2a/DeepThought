@@ -347,9 +347,13 @@ class SamsumDataset(Dataset):
                     elif self.roberta:
                         summary_commonsense = ""
                         for _, summ in self.roberta_classified_w[self.id[index]].items():
+                          try:
                             commonsense = summ["out"].strip() + ". "
                             commonsense = commonsense.replace("PersonX","Person").replace("PersonY","Person")
                             summary_commonsense += commonsense
+                          except KeyError:
+                            print("Key error in roberta commonsense extraction")
+                            summary_commonsense = ""
                     elif self.sentence_transformer:
                         summary_commonsense = ""
                         for _, summ in self.sentence_transformer_classified_w[self.id[index]].items():
