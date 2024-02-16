@@ -1,5 +1,5 @@
 import os
-os.environ['FOR_DISABLE_CONSOLE_CTRL_HANDLER'] = '1
+os.environ['FOR_DISABLE_CONSOLE_CTRL_HANDLER'] = '1'
 
 import sys
 sys.path.append('../')
