@@ -24,8 +24,8 @@ from src.trainer import DualDecoderTrainer
 # Set Argument Parser
 parser = argparse.ArgumentParser()
 # Training hyperparameters
-parser.add_argument('--subset_size', type = int, default = 100)
-parser.add_argument('--sentiment', type = bool, default = False)
+parser.add_argument('--subset_size', type = int, default = 100) #argument that permits to choose a percentage of data
+parser.add_argument('--sentiment', type = bool, default = False) #set to True for emotion-aware commonsense
 parser.add_argument('--epoch', type=int, default=20)
 parser.add_argument('--train_batch_size', type=int, default=16)
 #parser.add_argument('--display_step',type=int, default=14000)
@@ -113,7 +113,7 @@ vocab_size_list={
     "google/t5-v1_1-large":32128
 }
 dataset_list = [
-    "samsum","dialogsum"
+    "samsum","dialogsum", "tweetsum"
 ]
 
 
