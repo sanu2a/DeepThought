@@ -24,8 +24,8 @@ from src.trainer import DualDecoderTrainer
 # Set Argument Parser
 parser = argparse.ArgumentParser()
 # Training hyperparameters
-parser.add_argument('--subset_size', type = int, default = 100)
-parser.add_argument('--emotion', type = bool, default = False)
+parser.add_argument('--subset_size', type = int, default = 100) #choose the percentage of data you want to use
+parser.add_argument('--emotion', type = bool, default = False) #set to True to use emotion-aware commonsense
 parser.add_argument('--epoch', type=int, default=20)
 parser.add_argument('--train_batch_size', type=int, default=16)
 #parser.add_argument('--display_step',type=int, default=14000)
