@@ -20,7 +20,7 @@ from dataset import SamsumDataset_total, DialogsumDataset_total, SamsumDataset_l
 # Set Argument Parser
 parser = argparse.ArgumentParser()
 # Training hyperparameters
-parser.add_argument('--subset_size', type = int, default = 100)
+parser.add_argument('--subset_size', type = int, default = 100) #new argument, it permits to choose a percentage of data 
 parser.add_argument('--epoch', type=int, default=20)
 parser.add_argument('--train_batch_size', type=int, default=20)
 #parser.add_argument('--display_step',type=int, default=2000)
@@ -56,7 +56,7 @@ parser.add_argument('--dataset_directory',type=str, default='./data')
 parser.add_argument('--test_output_file_name',type=str, default='samsum_context_trial2.txt')
 parser.add_argument('--relation',type=str,default="xReason")
 parser.add_argument('--supervision_relation',type=str,default='isAfter')
-parser.add_argument('--sentiment',type=bool,default=False)
+parser.add_argument('--sentiment',type=bool,default=False) #seto to True, to use the emotion-aware commonsense
 args = parser.parse_args()
 
 
