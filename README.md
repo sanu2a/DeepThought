@@ -1,4 +1,4 @@
-# DeepThougt
+# DeepThought
 
 ## Project Overview:
 - **Subject**: Injecting commonsense Knowledge for abstractive Dialogue Summarization
