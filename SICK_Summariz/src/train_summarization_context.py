@@ -56,7 +56,7 @@ parser.add_argument('--dataset_directory',type=str, default='./data')
 parser.add_argument('--test_output_file_name',type=str, default='samsum_context_trial2.txt')
 parser.add_argument('--relation',type=str,default="xReason")
 parser.add_argument('--supervision_relation',type=str,default='isAfter')
-parser.add_argument('--emotion', type = bool, default = False)
+parser.add_argument('--emotion', type = bool, default = False) #set to true in order to use emotion-aware commonsense
 args = parser.parse_args()
 
 
