@@ -112,8 +112,18 @@ vocab_size_list={
     "google/t5-large-lm-adapt":32128, 
     "google/t5-v1_1-large":32128
 }
+#added new dataset
 dataset_list = [
-    "samsum","dialogsum", "tweetsum"
+    "samsum","dialogsum", "tweetsumm"
+]
+
+#new strategy for commonsense selection, best_relation
+
+relation_list_comet = [
+  'best_relation', 'xNeed', 'HinderedBy', 'xWant',  'xReason', 'xIntent' 
+]
+relation_list_paracomet = [
+  'best_relation', 'xIntent', 'xWant', 'xReact', 'xEffect', 'xAttr'
 ]
 
 
