@@ -28,9 +28,9 @@ from src.trainer import DialoGPTTrainer
 # Set Argument Parser
 parser = argparse.ArgumentParser()
 # Training hyperparameters
+parser.add_argument('--emotion', type = bool, default = False)
 parser.add_argument('--epoch', type=int, default=15)
 parser.add_argument('--train_batch_size', type=int, default=20)
-#parser.add_argument('--display_step',type=int, default=2000)
 parser.add_argument('--val_batch_size',type=int, default=4)
 parser.add_argument('--test_batch_size',type=int,default=1)
 # Model hyperparameters
@@ -51,7 +51,6 @@ parser.add_argument('--vocab_size',type=int, default=51201)
 parser.add_argument('--eos_idx',type=int, default=51200)
 parser.add_argument('--tokenizer_name',type=str, default='RobertaTokenizer')
 # Checkpoint directory hyperparameters
-#parser.add_argument('--pretrained_weight_path',type=str, default='pretrained_weights')
 parser.add_argument('--finetune_weight_path', type=str, default="./BART_weights_Samsum_5epoch")
 parser.add_argument('--best_finetune_weight_path',type=str, default='final_BART_weights_Samsum_5epoch')
 # Dataset hyperparameters
@@ -202,22 +201,14 @@ finetune_args = Seq2SeqTrainingArguments(
     per_device_eval_batch_size = args.val_batch_size,
     learning_rate=args.init_lr,
     weight_decay=args.weight_decay,
-    # adam_beta1=args.adam_beta1,
-    # adam_beta2=args.adam_beta2,
-    # adam_epsilon=args.adam_eps,
     num_train_epochs=args.epoch,
     max_grad_norm=0.1,
     label_smoothing_factor=0.1,
     gradient_accumulation_steps=2,
-    # gradient_checkpointing=True,
-    # max_steps= ,
     lr_scheduler_type='polynomial',
-    #warmup_ratio= ,
     warmup_steps= args.warm_up,
     logging_strategy="epoch",
-    #logging_steps=args.display_step,
     save_strategy= "epoch",
-    #save_steps=args.display_step,
     save_total_limit=1,
     fp16=True,
     seed = 42,
@@ -268,7 +259,6 @@ if args.model_name in ['microsoft/DialoGPT-small','google/pegasus-large','facebo
         eval_dataset = eval_dataset,
         tokenizer = tokenizer,
         compute_metrics=compute_metrics,
-        #preprocess_logits_for_metrics=preprocess_logits_for_metrics
     )
 
 else:
@@ -279,7 +269,6 @@ else:
         eval_dataset = eval_dataset,
         tokenizer = tokenizer,
         compute_metrics=compute_metrics,
-        # preprocess_logits_for_metrics=preprocess_logits_for_metrics
     )
 
 

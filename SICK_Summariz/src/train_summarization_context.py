@@ -56,7 +56,7 @@ parser.add_argument('--dataset_directory',type=str, default='./data')
 parser.add_argument('--test_output_file_name',type=str, default='samsum_context_trial2.txt')
 parser.add_argument('--relation',type=str,default="xReason")
 parser.add_argument('--supervision_relation',type=str,default='isAfter')
-parser.add_argument('--sentiment',type=bool,default=False)
+parser.add_argument('--emotion', type = bool, default = False)
 args = parser.parse_args()
 
 
@@ -148,8 +148,8 @@ args.vocab_size = vocab_size_list[args.model_name]
 if args.dataset_name not in dataset_list:
     assert "Your Dataset name is not valid"
 
-if args.sentiment == True :
-    print("Sentiment will be injected")
+if args.emotion == True :
+    print("emotion will be injected")
 
 # Set metric
 #metric = load_metric("rouge")
@@ -165,17 +165,17 @@ tokenizer.add_special_tokens(special_tokens_dict)
 
 # Set dataset
 if args.dataset_name=='samsum':
-    total_dataset = SamsumDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,subset_size = args.subset_size, extra_context=True,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation,roberta=args.use_roberta, sentence_transformer=args.use_sentence_transformer,sentiment = args.sentiment)
+    total_dataset = SamsumDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,subset_size = args.subset_size, extra_context=True,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation,roberta=args.use_roberta, sentence_transformer=args.use_sentence_transformer,emotion = args.emotion)
     train_dataset = total_dataset.getTrainData()
     eval_dataset = total_dataset.getEvalData()
     test_dataset = total_dataset.getTestData()
 elif args.dataset_name=='dialogsum':
-    total_dataset = DialogsumDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,subset_size = args.subset_size, extra_context=True,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation, sentence_transformer=args.use_sentence_transformer, roberta=args.use_roberta, sentiment = args.sentiment)
+    total_dataset = DialogsumDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,subset_size = args.subset_size, extra_context=True,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation, sentence_transformer=args.use_sentence_transformer, roberta=args.use_roberta, emotion = args.emotion)
     train_dataset = total_dataset.getTrainData()
     eval_dataset = total_dataset.getEvalData()
     test_dataset = total_dataset.getTestData()
 elif args.dataset_name=='tweetsumm':
-    total_dataset = TweetsummDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,subset_size = args.subset_size, extra_context=True,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation, sentence_transformer=args.use_sentence_transformer, roberta=args.use_roberta, sentiment = args.sentiment)
+    total_dataset = TweetsummDataset_total(args.encoder_max_len,args.decoder_max_len,tokenizer,subset_size = args.subset_size, extra_context=True,paracomet=args.use_paracomet,relation=args.relation,supervision_relation=args.supervision_relation, sentence_transformer=args.use_sentence_transformer, roberta=args.use_roberta, emotion = args.emotion)
     train_dataset = total_dataset.getTrainData()
     eval_dataset = total_dataset.getEvalData()
     test_dataset = total_dataset.getTestData()

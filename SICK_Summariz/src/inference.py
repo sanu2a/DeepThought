@@ -44,26 +44,9 @@ args = parser.parse_args()
 print('######################################################################')
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print('Device:', device)
-#print('Current cuda device:', torch.cuda.current_device())
-#print('Count of using GPUs:', torch.cuda.device_count())
-#print(torch.cuda.get_device_name())
 print('######################################################################')
 
-# Define Global Values
-# model_checkpoint_list = [
-#     "final_Trial2_base_BART_Samsum",
-#     "final_Trial2_context_BART_Samsum",
-#     "final_Trial4_supervision_BART_Samsum",
-#     "final_Trial4_full_BART_Samsum",
-#     "final_Trial5_supervision_BART_Samsum",
-#     "final_Trial5_full_BART_Samsum",
-#     "final_TRIAL3_Dialogsum_base_BART",
-#     "final_TRIAL3_Dialogsum_context_BART",
-#     "final_TRIAL4_Dialogsum_full_BART",
-#     "final_TRIAL4_Dialogsum_supervision_BART"
-#     "final_TRIAL3_Dialogsum_head_full_BART",
-#     "final_TRIAL3_Dialogsum_head_supervision_BART"
-# ]
+
 
 model_checkpoint_list = [
     "final_Trial2_base_BART_Samsum",
@@ -84,7 +67,7 @@ model_checkpoint_list = [
 
 extra_supervision = False
 extra_context=False    
-# Samsum
+
 if args.train_configuration == "base":
     finetune_model = BartForConditionalGeneration.from_pretrained(args.model_checkpoint, local_files_only=True)
 elif args.train_configuration == "context":
@@ -186,18 +169,9 @@ with torch.no_grad():
         # Rouge expects a newline after each sentence
         decoded_preds = ["\n".join(nltk.sent_tokenize(pred.strip())) for pred in decoded_preds]
         decoded_labels = ["\n".join(nltk.sent_tokenize(label.strip())) for label in decoded_labels]
-        #print('################')
-       # print(decoded_preds)
-       # print()
-       # print()
-        #print(decoded_labels)
-        #print('############')
         metric.add_batch(predictions=decoded_preds, references=decoded_labels)
         bertscore_metric.add_batch(predictions=decoded_preds, references=decoded_labels)
-        #scores = scorer.score(references=decoded_labels, candidates=decoded_preds)
        
-        #print(scores)
-
         if args.dataset_name=='dialogsum':
             y2 = data['labels2'].to(device,dtype=torch.long)
             y2 = y2.cpu()
@@ -236,7 +210,6 @@ total_decoded_labels = [item for sublist in total_decoded_labels for item in sub
 total_decoded_preds = [item for sublist in total_decoded_preds for item in sublist]
 scores = scorer.score(references=total_decoded_labels, candidates=total_decoded_preds)
 scores = np.array(scores)
-#assert isinstance(scores, list) and len(scores) == 1
 print("--------BLEURT SCORE--------")
 print(scores.mean())
 print("----------------------------")
