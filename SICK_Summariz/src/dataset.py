@@ -184,7 +184,7 @@ class SamsumDataset(Dataset):
                         return "<I> " + commonsense.strip() + "," + emotion2 + ". </I>" + '\n'
                     ## Return the new emotion aware commensense 
                     return "<I> " + commonsense.strip() + "," + emotion + ". </I>" + '\n'
-                else : ## Emotion not eextracted
+                else : ## Emotion not extracted
                     return "<I> " + commonsense.strip() + ". </I>" + '\n'
             else:
                 return "" 
@@ -207,8 +207,13 @@ class SamsumDataset(Dataset):
                     
                     dia = self.dialogue_comet_inference[self.id[index]]
                     dialogue=""
+                    ## Dialogue clean consists of the original dialogue without commonsense,
+                    ## to be used in the case of context emotion-aware commonsense extraction.
                     dialogue_clean = ""
+
+                    ## A variable to store, for each utterance, the n previous utterances used as context.
                     previous = []
+                    
                     for sent_idx, sent in enumerate(dia):
                         person = sent['speaker'].replace(": ","").replace(":","").strip()
                         sentence = sent['sentence'].strip()
@@ -217,7 +222,7 @@ class SamsumDataset(Dataset):
 
                         elif self.sentence_transformer:
                             commonsense = self.sentence_transformer_classified_z[self.id[index]][str(sent_idx)]["out"]
-                            # print(commonsense)
+                            
                         elif self.relation == '<|best_relation|>':
                             commonsense = self.compute_best_relation(sentence, sent)
                         else:
@@ -228,13 +233,14 @@ class SamsumDataset(Dataset):
                         dialogue_clean +=  person + " said \"" + sentence + ".\"" + '\n' 
                         if sent['speaker']+sentence != commonsense:
                             try :
-                                ## Not include the commensense => 10 uteerances
+                                ## Create the context of the utterance to be used to extract the emotion in case of "others' emotion detected."
+                                # n-utterances (n = 5 here)
                                 previous = '\n'.join(line for line in dialogue_clean.splitlines()[-5:] if not line.strip().startswith('<I>'))
-                                ## Includes the commensense in the process of the previous utterances 
                             except KeyError:
+                                ## In case of non existence of n-previous (for the n-1 first utterances)
                               previous = dialogue_clean
                             dialogue += self.process_media_msg(sentence, person, commonsense, previous)
-                            #print(dialogue)
+
 
                 except KeyError:
                     print("key error")
@@ -245,9 +251,13 @@ class SamsumDataset(Dataset):
             else: # use PARACOMET
                 try:
                     dia = self.dialogue_comet_inference[self.id[index]]
-                    #print(dia)
                     dialogue=""
+                    ## Dialogue clean consists of the original dialogue without commonsense,
+                    ## to be used in the case of context emotion-aware commonsense extraction.
                     dialogue_clean = ""
+
+                    ## A variable to store, for each utterance, the n previous utterances used as context.
+                    previous = []
                     for sent_idx, sent in dia.items():
                         sentence = sent['sentence'].strip()
                         person = sentence.split()[0]
@@ -266,8 +276,11 @@ class SamsumDataset(Dataset):
                         dialogue += sentence +'\n'
                         if sentence != commonsense:
                             try : 
+                                ## Create the context of the utterance to be used to extract the emotion in case of "others' emotion detected."
+                                # n-utterances (n = 5 here)
                                 previous = '\n'.join(line for line in dialogue_clean.splitlines()[-5:] if not line.strip().startswith('<I>'))
                             except KeyError:
+                                ## In case of non existence of n-previous (for the n-1 first utterances)
                                 previous = dialogue_clean
                             dialogue += self.process_media_msg(sentence, person, commonsense, previous)
                             
@@ -483,14 +496,8 @@ class DialogsumDataset(Dataset):
         ##################################################
 
         self.data = custom_load_dataset('dialogsum', split=split_type)
-        #print(len(self.data['dialogue']), len(self.data['id']), len(self.data['summary'])) All the same
         if self.subset_size < 100 and (split_type == 'train' or split_type == 'validation'):
           selected_indices = random.sample(range(len(self.data['dialogue'])), int((self.subset_size)/100 * len(self.data['dialogue'])))
-          #print(selected_indices, len(selected_indices))
-          #self.data = dict(random.sample(self.data.items(), int((self.subset_size)/100 * len(self.data))))
-          #subset_indices = random.sample(range(len(self.data)), int((self.subset_size)/100 * int(len(self.data))))
-          #self.data = self.data.select(subset_indices)
-          #print(self.data)
           self.dialogue = [self.data["dialogue"][i]  for i in selected_indices]
           self.summary = [self.data["summary"][i]  for i in selected_indices]
           self.id = [self.data["id"][i]  for i in selected_indices]
@@ -728,7 +735,6 @@ class DialogsumDataset(Dataset):
                                     commonsense = self.compute_best_relation(self.dialogue_comet_inference['test_'+self.id[index]][idx])
                                   else:
                                     commonsense = self.dialogue_comet_inference['test_'+self.id[index]][idx][self.relation][0].strip()
-                                    # commonsense = commonsense.replace("PersonX","Person").replace("PersonY","Person")
                                   break
                                 else:
                                     idx+=1
@@ -777,16 +783,21 @@ class DialogsumDataset(Dataset):
                         else:
                             if commonsense.strip() != 'none':
                                 ## ADD emotion
-                                if self.emotion == True :
-                                    ## emotion injection 
+                                if self.emotion == True :   ## Create the emotion aware commensense 
+                                    ## Detect the emotion from the given utterance
                                     emotion = emotion_analyzer.predict(sentence).output
-                                    if emotion == "others" :
-                                        previous = '\n'.join(line for line in dialogue_clean.splitlines()[-10:] if not line.strip().startswith('<I>'))
+                                    ## emotion injection 
+                                    if emotion == "others" : ## In case of "others" emotion detected 
+                                        ## Create the context consisiting of previous utterances
+                                        previous = '\n'.join(line for line in dialogue_clean.splitlines()[-5:] if not line.strip().startswith('<I>'))
+                                        ## We analyzee the previous context of the dialogue to extract the new emotion
                                         emotion2 = emotion_analyzer.predict(previous).output 
+                                        ## Inject the new context emotion aware commensense
                                         dialogue += "<I> " + commonsense.strip() + "," + emotion2 + ". </I>" + '\n'
                                     else :
+                                        ## Inject the new  emotion aware commensense
                                         dialogue += "<I> " + commonsense.strip() + "," + emotion + ". </I>" + '\n'
-                                else : 
+                                else : ## Emotion not extracted
                                     dialogue += "<I> " + commonsense.strip() + ". </I>" + '\n'
             encoded_dialogue = self.tokenizer(dialogue,
                                             padding='max_length', 
@@ -827,12 +838,7 @@ class DialogsumDataset(Dataset):
 
         #model_inputs['decoder_input_ids'] = shift_tokens_right(model_inputs['labels'].clone(),self.tokenizer.pad_token_id,0).squeeze(0)
         model_inputs['labels'] = model_inputs['labels'].squeeze(0)
-        #print('#####')
-        #print(model_inputs['decoder_input_ids'])
-        #print()
-        #print(model_inputs['labels'])
-        #print('#####')
-        #model_inputs['decoder_attention_mask'] = encoded_summary['attention_mask'].squeeze(0)
+
         
 
 
@@ -1161,16 +1167,23 @@ class TweetsummDataset(Dataset):
 
                         except:
                             continue
+
                     if 'none' not in commonsense:
-                        if self.emotion == True : 
+                        ## ADD emotion
+                        if self.emotion == True :  ## Create the emotion aware commensense 
+                            ## Detect the emotion from the given utterance
                             emotion = emotion_analyzer.predict(utterance).output
-                            if emotion == "others" :
-                                previous = '\n'.join(line for line in dialogue_clean.splitlines()[-10:] if not line.strip().startswith('<I>'))
+                            if emotion == "others" : ## In case of "others" eemotion detected 
+                                ## Create the context consisiting of previous utterances
+                                previous = '\n'.join(line for line in dialogue_clean.splitlines()[-5:] if not line.strip().startswith('<I>'))
+                                ## We analyzee the previous context of the dialogue to extract the new emotion
                                 emotion2 = emotion_analyzer.predict(previous).output 
+                                ## Inject the new context emotion aware commensense
                                 dialogue += "<I> " + commonsense.strip() + "," + emotion2 + ". </I>" + '\n'
                             else :
+                                ## Inject the new  emotion aware commensense
                                 dialogue += "<I> " + commonsense.strip() + "," + emotion + ". </I>" + '\n'
-                        else :     
+                        else :   ## Emotion not extracted 
                             dialogue+= '<I> '
                             dialogue+= commonsense+'.'
                             dialogue+= ' </I>'+'\n'
