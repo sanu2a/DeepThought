@@ -1,4 +1,5 @@
 import os
+os.environ['FOR_DISABLE_CONSOLE_CTRL_HANDLER'] = '1
 
 import sys
 sys.path.append('../')
@@ -14,7 +15,7 @@ from transformers import AutoTokenizer
 from transformers import AutoConfig, AutoModelForSeq2SeqLM
 from transformers import Seq2SeqTrainingArguments, Seq2SeqTrainer
 from datasets import load_metric
-import wandb
+#import wandb
 from dataset import SamsumDataset_total, DialogsumDataset_total, TweetsummDataset_total
 from models.bart import BartForConditionalGeneration_DualDecoder
 from src.trainer import DualDecoderTrainer
@@ -75,7 +76,7 @@ print('######################################################################')
 
 
 # Start WANDB Log (Set Logging API)
-wandb.init(project="ICSK4AS", reinit=True, entity='icsk4as')
+#wandb.init(project="ICSK4AS", reinit=True, entity='icsk4as')
 
 
 # Define Global Values
@@ -219,7 +220,7 @@ finetune_args = Seq2SeqTrainingArguments(
     #generation_num_beams=5,
     #metric_for_best_model='eval_rouge2',
     greater_is_better=True,
-    report_to = 'wandb',
+   # report_to = 'wandb',
 )
 
 def compute_metrics(eval_pred):
@@ -292,4 +293,4 @@ with open(args.test_output_file_name,"w") as f:
         f.write(i.replace("\n","")+"\n")
 """
 # END WANDB log
-wandb.finish()
+#wandb.finish()
