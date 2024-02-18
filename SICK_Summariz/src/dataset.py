@@ -1,4 +1,4 @@
-import json
+Fimport json
 import pickle
 import torch
 import torch.nn as nn
@@ -700,7 +700,7 @@ class DialogsumDataset(Dataset):
                                 if self.dialogue_comet_inference['train_'+self.id[index]][idx]['sentence'] not in ("#Person1#:","#Person2#:"):
                                   if self.relation == '<|best_relation|>':
                                     commonsense = self.compute_best_relation(self.dialogue_comet_inference['train_'+self.id[index]][idx])
-                                    print(commonsense)
+                                    #print(commonsense)
                                     
                                   else:
                                     commonsense = self.dialogue_comet_inference['train_'+self.id[index]][idx][self.relation][0].strip()
