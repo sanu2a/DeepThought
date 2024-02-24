@@ -12,4 +12,4 @@
 
 ## Datasets:
 - All used datasets can be found here: [Drive Link](https://drive.google.com/drive/folders/15fX5XzZBn7rW-IvAGb6g-HKoQqdOxIne?usp=sharing)
-  COMET_data folder contains the commonsense extracted data (both from Comet and Paracomet) for the used datasets.
+  (COMET_data folder contains the commonsense extracted data (both from Comet and Paracomet) for the used datasets.)
