@@ -1,7 +1,7 @@
 # DeepThought
 
 ## Project Overview:
-This project focuses on the task of abstractive dialogue summarization. Starting from the work that can be seen in this link, we are developing expansions such as the use of emotions associated with utterances, a procedure for injecting the best possible commonsense, and the use of a new metric, BLEURT, and a new ideal dataset for this purpose, TweetSumm.
+This project focuses on the task of abstractive dialogue summarization. Starting from the work that can be seen in link of the reasearch paper reported below, we are developing expansions such as the use of emotions associated with utterances, a procedure for injecting the best possible commonsense, and the use of a new metric, BLEURT, and a new ideal dataset for this purpose, TweetSumm.
 
 Inside the repository, you can find Python notebooks that explain how to execute the code for both the training phase and the inference.
 
