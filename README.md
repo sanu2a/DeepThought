@@ -9,4 +9,3 @@
 
 ## Additional Resources:
 - **Link to Overleaf Report**: [Overleaf Report Link](https://it.overleaf.com/8765118175vsjkkbywsdxr#793b3a)
-- **Link to presentation Slides "Maybe"**: [Our slides links]
