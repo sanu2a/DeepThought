@@ -591,8 +591,6 @@ class DialogsumDataset(Dataset):
         self.data_len = len(self.id)
 
     def compute_best_relation(self, d: dict):
-      #print(d)
-      #print(f"Sentence: {sentence}")
       sentence = d['sentence']
       encoded_sentence = self.tokenizer(sentence,
                                             padding='max_length', 
@@ -623,10 +621,8 @@ class DialogsumDataset(Dataset):
         similarity = cosine_similarity(encoded_sentence['input_ids'], encoded['input_ids'])
         commonsenseDict[k] = similarity[0][0]
       
-      #print(commonsenseDict)
       #print(f"The best relation is: {max(commonsenseDict, key=commonsenseDict.get)}")
       best_relation = max(commonsenseDict, key=commonsenseDict.get)
-      #print(best_relation, d[best_relation], type(d[best_relation]))
       return d[best_relation][0]
 
     def __len__(self):
@@ -971,11 +967,6 @@ class TweetsummDataset(Dataset):
         #print(len(self.data['dialogue']), len(self.data['id']), len(self.data['summary'])) All the same
         if self.subset_size != 100 and (split_type == 'train' or split_type == 'validation'):
           selected_indices = random.sample(range(len(self.data['dialogue'])), int((self.subset_size)/100 * len(self.data['dialogue'])))
-          #print(selected_indices, len(selected_indices))
-          #self.data = dict(random.sample(self.data.items(), int((self.subset_size)/100 * len(self.data))))
-          #subset_indices = random.sample(range(len(self.data)), int((self.subset_size)/100 * int(len(self.data))))
-          #self.data = self.data.select(subset_indices)
-          #print(self.data)
           self.dialogue = [self.data["dialogue"][i]  for i in selected_indices]
           self.summary = [self.data["summary"][i]  for i in selected_indices]
           self.id = [self.data["id"][i]  for i in selected_indices]
@@ -1034,7 +1025,6 @@ class TweetsummDataset(Dataset):
         self.data_len = len(self.id)
     
     def compute_best_relation(self, d: dict):
-      #print(d)
       #print(f"Sentence: {sentence}")
       sentence = d['sentence']
       encoded_sentence = self.tokenizer(sentence,
@@ -1066,10 +1056,8 @@ class TweetsummDataset(Dataset):
         similarity = cosine_similarity(encoded_sentence['input_ids'], encoded['input_ids'])
         commonsenseDict[k] = similarity[0][0]
       
-      #print(commonsenseDict)
       #print(f"The best relation is: {max(commonsenseDict, key=commonsenseDict.get)}")
       best_relation = max(commonsenseDict, key=commonsenseDict.get)
-      #print(best_relation, d[best_relation], type(d[best_relation]))
       return d[best_relation][0]
 
 
