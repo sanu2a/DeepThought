@@ -1,8 +1,0 @@
-transformers
-nltk
-datasets
-wandb
-rouge_score
-bert_score
-py7zr
-metrics
