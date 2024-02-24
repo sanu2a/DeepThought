@@ -51,6 +51,11 @@ class SamsumDataset(Dataset):
         print(self.relation)
         ##################################################
 
+                     
+        ############################################
+        #code for extracting a random subset of data
+        #seed imposed
+        ############################################
         self.data = load_dataset('samsum',split=split_type)
         if self.subset_size < 100 and (split_type == 'train' or split_type == 'validation'):
           subset_indices = random.sample(range(len(self.data)), int((self.subset_size)/100 * int(len(self.data))))
@@ -123,7 +128,10 @@ class SamsumDataset(Dataset):
         
         self.data_len = len(self.data)
 
-
+    ###########################################################################
+    #function that computes the best commonsense given an utterance.
+    #the cosine similarity is performed to understand what is the best relation
+    ###########################################################################
 
     def compute_best_relation(self, sentence, d: dict):
       encoded_sentence = self.tokenizer(sentence,
