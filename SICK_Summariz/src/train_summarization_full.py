@@ -20,12 +20,12 @@ from dataset import SamsumDataset_total, DialogsumDataset_total, TweetsummDatase
 from models.bart import BartForConditionalGeneration_DualDecoder
 from src.trainer import DualDecoderTrainer
 
+from peft import get_peft_config, get_peft_model, LoraConfig, TaskType, PeftModel
 
 # Set Argument Parser
 parser = argparse.ArgumentParser()
 # Training hyperparameters
 parser.add_argument('--subset_size', type = int, default = 100) #choose the percentage of data you want to use
-parser.add_argument('--emotion', type = bool, default = False) #set to True to use emotion-aware commonsense
 parser.add_argument('--epoch', type=int, default=20)
 parser.add_argument('--train_batch_size', type=int, default=16)
 #parser.add_argument('--display_step',type=int, default=14000)
@@ -33,6 +33,8 @@ parser.add_argument('--val_batch_size',type=int, default=4)
 parser.add_argument('--test_batch_size',type=int,default=1)
 # Model hyperparameters
 parser.add_argument('--model_name',type=str, default='facebook/bart-large-xsum')
+parser.add_argument('--lora_finetuning', type=bool,default=False)
+parser.add_argument('--lora_r', type=int,default=16)
 # Optimizer hyperparameters
 parser.add_argument('--init_lr',type=float, default=3e-6)
 parser.add_argument('--warm_up',type=int, default=600)
@@ -61,6 +63,7 @@ parser.add_argument('--dataset_directory',type=str, default='./data')
 parser.add_argument('--test_output_file_name',type=str, default='samsum_context_trial2.txt')
 parser.add_argument('--relation',type=str,default="xReason")
 parser.add_argument('--supervision_relation',type=str,default='isAfter')
+parser.add_argument('--emotion', type = bool, default = False) #set to True to use emotion-aware commonsense
 
 args = parser.parse_args()
 
@@ -177,16 +180,34 @@ print(len(test_dataset))
 print('######################################################################')
 
 
+# Set metric
+metric = load_metric("../utils/rouge.py")
+
+# Load Tokenizer associated to the model
+tokenizer = AutoTokenizer.from_pretrained(args.model_name)
+
+# Add special token 
+special_tokens_dict = {'additional_special_tokens':['<I>','</I>']}
+tokenizer.add_special_tokens(special_tokens_dict)
 # Loading checkpoint of model
 config = AutoConfig.from_pretrained(args.model_name)
 finetune_model = BartForConditionalGeneration_DualDecoder.from_pretrained(args.model_name)
+finetune_model.resize_token_embeddings(len(tokenizer))
+# Fine-tuning a subset of parameters instead of the full model. In this way it's more resource efficient and it's faster.
+# The final results are comparable with the full training of the model. 
+if args.lora_finetuning == True:
+    peft_config = LoraConfig(
+        task_type=TaskType.SEQ_2_SEQ_LM, inference_mode=False, r=args.lora_r, lora_alpha=32, lora_dropout=0.1
+    )
+    finetune_model = get_peft_model(finetune_model, peft_config) 
+    
 print('######################################################################')
-print("Number of Model Parameters are : ",finetune_model.num_parameters())
+print("Number of Model Parameters are : ",finetune_model.print_trainable_parameters() if args.lora_finetuning else finetune_model.num_parameters())
 print('######################################################################')
+
 
 
 # Set extra Configuration for Finetuning on Summarization Dataset
-finetune_model.resize_token_embeddings(len(tokenizer))
 finetune_model.gradient_checkpointing_enable()
 finetune_model = finetune_model.to(device)
 
@@ -231,6 +252,7 @@ finetune_args = Seq2SeqTrainingArguments(
     #metric_for_best_model='eval_rouge2',
     greater_is_better=True,
     report_to = 'none',
+    disable_tqdm=False
 )
 
 def compute_metrics(eval_pred):
@@ -267,7 +289,9 @@ finetune_trainer = DualDecoderTrainer(
 # Run Training (Finetuning)
 finetune_trainer.train()
 
-
+# We merge the the parameters just trained with the original model to create a new complete model instead of a LoRa checkpoint for compatibility purposes
+if args.lora_finetuning:
+    finetune_trainer.model = finetune_trainer.model.merge_and_unload()
 
 # Save final weights
 finetune_trainer.save_model(args.best_finetune_weight_path)
