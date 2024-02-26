@@ -9,16 +9,13 @@ Inside the repository, you can find Python notebooks that explain how to execute
 It is important to underline that the model needs checkpoints so that the inference can be performed. Inside the link present in the Dataset & Checkpoint section, you can find two, resulting from a training of 5 epochs on SamSum and DialogSum.
 
 
-
 ## External Links:
 - **Subject**: Injecting commonsense Knowledge for abstractive Dialogue Summarization
-- **Link to research paper**: [Paper Link](https://aclanthology.org/2022.coling-1.548)
+- **Link to original research paper**: [Paper Link](https://aclanthology.org/2022.coling-1.548)
 - **GitHub Repository**: [GitHub Repository Link](https://github.com/SeungoneKim/SICK_Summarization)
-- **Teacher Contact**: Giuseppe.Gallipoli@polito.it
-
 
 ## Additional Resources:
-- **Link to Overleaf Report**: [Overleaf Report Link](https://it.overleaf.com/8765118175vsjkkbywsdxr#793b3a)
+- **Link to our paper**: [Paper Link](https://drive.google.com/file/d/1xIgmiHUTDXSVPtj8Si3Fc7SJW5OwHMsg/view?usp=sharing)
 
 ## Datasets & Checkpoints:
 - All used datasets and two checkpoints for testing can be found here: [Drive Link](https://drive.google.com/drive/folders/15fX5XzZBn7rW-IvAGb6g-HKoQqdOxIne?usp=sharing)
